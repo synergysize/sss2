@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Sphere - Blockchain Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.150.1/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    // Initialize the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 20000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+    // Set up renderer
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // Set background color to deep space blue
+    scene.background = new THREE.Color(0x000815);
+
+    // Add a grid helper for orientation
+    const gridHelper = new THREE.GridHelper(2000, 20, 0xff0000, 0x444444);
+    scene.add(gridHelper);
+    console.log('Added grid helper');
+
+    // Add test sphere to verify rendering is working
+    const testSphere = new THREE.Mesh(
+      new THREE.SphereGeometry(200, 32, 32),
+      new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+    );
+    testSphere.position.set(0, 0, 0); // Position at origin
+    scene.add(testSphere);
+    console.log('Added test sphere at origin');
+
+    // Add ambient and directional light to ensure visibility
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1).normalize();
+    scene.add(directionalLight);
+    console.log('Added lights to the scene');
+
+    // Position camera
+    camera.position.set(0, 500, 1000);
+    camera.lookAt(0, 0, 0);
+    console.log('Camera positioned at:', camera.position);
+
+    // Add controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.update();
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+  
+  <div style="position: absolute; bottom: 10px; right: 10px; color: white; background-color: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; font-size: 12px;">
+    <p>Left Click: Rotate | Right Click: Pan | Scroll: Zoom</p>
+  </div>
+</body>
+</html>

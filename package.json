@@ -1,0 +1,19 @@
+{
+  "name": "blockchain-visualizer",
+  "version": "1.0.0",
+  "description": "3D blockchain visualizer using Three.js",
+  "source": "public/index.html",
+  "type": "module",
+  "scripts": {
+    "start": "parcel public/index.html",
+    "build": "parcel build public/index.html",
+    "test": "node src/manual-test.js"
+  },
+  "dependencies": {
+    "three": "^0.150.1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1",
+    "parcel": "^2.15.2"
+  }
+}

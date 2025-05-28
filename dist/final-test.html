@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blockchain Visualization Test</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.150.1/examples/jsm/controls/OrbitControls.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+    // Initialize the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+    // Set up renderer
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // Set background color to deep space blue
+    scene.background = new THREE.Color(0x000815);
+
+    // Create test objects
+    // Red cube at the origin
+    const cubeGeometry = new THREE.BoxGeometry(100, 100, 100);
+    const cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+    cube.position.set(0, 0, 0);
+    scene.add(cube);
+    console.log('Added red cube at origin');
+
+    // Green sphere at (200, 200, 200)
+    const sphereGeometry = new THREE.SphereGeometry(75, 32, 32);
+    const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    sphere.position.set(200, 200, 200);
+    scene.add(sphere);
+    console.log('Added green sphere at (200, 200, 200)');
+
+    // Blue cylinder at (-200, 100, 100)
+    const cylinderGeometry = new THREE.CylinderGeometry(50, 50, 200, 32);
+    const cylinderMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+    const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+    cylinder.position.set(-200, 100, 100);
+    scene.add(cylinder);
+    console.log('Added blue cylinder at (-200, 100, 100)');
+
+    // Add grid helper for orientation
+    const gridHelper = new THREE.GridHelper(1000, 20, 0xff0000, 0xffffff);
+    scene.add(gridHelper);
+    console.log('Added grid helper');
+
+    // Add axes helper
+    const axesHelper = new THREE.AxesHelper(300);
+    scene.add(axesHelper);
+    console.log('Added axes helper');
+
+    // Position camera
+    camera.position.set(300, 300, 600);
+    camera.lookAt(0, 0, 0);
+    console.log('Camera positioned at:', camera.position);
+
+    // Add controls
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.1;
+    controls.update();
+
+    // Add bright white ambient light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+    scene.add(ambientLight);
+    console.log('Added ambient light');
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Add info text
+    const info = document.createElement('div');
+    info.style.position = 'absolute';
+    info.style.bottom = '20px';
+    info.style.right = '20px';
+    info.style.color = 'white';
+    info.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    info.style.padding = '10px';
+    info.style.borderRadius = '5px';
+    info.innerHTML = `
+      <p>Red cube at (0,0,0)</p>
+      <p>Green sphere at (200,200,200)</p>
+      <p>Blue cylinder at (-200,100,100)</p>
+      <p>Left Click: Rotate | Right Click: Pan | Scroll: Zoom</p>
+    `;
+    document.body.appendChild(info);
+
+    // Render loop
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      
+      // Rotate the cube slightly each frame
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.01;
+      
+      renderer.render(scene, camera);
+    }
+
+    animate();
+    console.log('Animation started');
+  </script>
+</body>
+</html>

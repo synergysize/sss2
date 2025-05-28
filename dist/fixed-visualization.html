@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fixed Blockchain Visualizer</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+    }
+    canvas {
+      display: block;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      color: white;
+      background-color: rgba(0,0,0,0.5);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+        "three/examples/jsm/controls/OrbitControls.js": "https://unpkg.com/three@0.150.1/examples/jsm/controls/OrbitControls.js",
+        "three/examples/jsm/controls/FlyControls.js": "https://unpkg.com/three@0.150.1/examples/jsm/controls/FlyControls.js"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+    import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
+
+    // Create a point texture for better visibility
+    function createPointTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      
+      const context = canvas.getContext('2d');
+      const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+      gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.9)');
+      gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.7)');
+      gradient.addColorStop(0.8, 'rgba(255, 255, 255, 0.3)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, 64, 64);
+      
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    // Create fake wallet data for testing
+    function createFakeData() {
+      const fartcoinWallets = [];
+      const goatWallets = [];
+      const sharedWallets = [];
+      
+      // Create some fake points
+      for (let i = 0; i < 15; i++) {
+        fartcoinWallets.push({
+          x: Math.random() * 1000 - 500,
+          y: Math.random() * 1000 - 500,
+          z: Math.random() * 1000 - 500,
+          amount: Math.random() * 1000,
+          color: 0x00ff00
+        });
+      }
+      
+      for (let i = 0; i < 15; i++) {
+        goatWallets.push({
+          x: Math.random() * 1000 - 500,
+          y: Math.random() * 1000 - 500,
+          z: Math.random() * 1000 - 500,
+          amount: Math.random() * 1000,
+          color: 0x0000ff
+        });
+      }
+      
+      for (let i = 0; i < 13; i++) {
+        sharedWallets.push({
+          x: Math.random() * 1000 - 500,
+          y: Math.random() * 1000 - 500,
+          z: Math.random() * 1000 - 500,
+          amount: Math.random() * 1000,
+          color: 0xffffff
+        });
+      }
+      
+      return { fartcoinWallets, goatWallets, sharedWallets };
+    }
+
+    // Initialize the scene, camera, and renderer
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 20000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+
+    // Set up renderer
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    // Set background color to deep space blue
+    scene.background = new THREE.Color(0x000815);
+
+    // Define boxCenter with a default value
+    let boxCenter = new THREE.Vector3(0, 0, 0);
+
+    // Create starfield background
+    function createStarfield() {
+      const geometry = new THREE.BufferGeometry();
+      const starCount = 2000;
+      const positions = new Float32Array(starCount * 3);
+      const sizes = new Float32Array(starCount);
+      
+      for (let i = 0; i < starCount; i++) {
+        const i3 = i * 3;
+        const radius = 5000 + Math.random() * 10000;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        
+        positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+        positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+        positions[i3 + 2] = radius * Math.cos(phi);
+        
+        sizes[i] = 1 + Math.random() * 4;
+      }
+      
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      
+      const starMaterial = new THREE.PointsMaterial({
+        color: 0xffffff,
+        size: 2,
+        transparent: true,
+        opacity: 0.8,
+        sizeAttenuation: true,
+        blending: THREE.AdditiveBlending
+      });
+      
+      const stars = new THREE.Points(geometry, starMaterial);
+      stars.name = 'starfield';
+      scene.add(stars);
+      
+      return stars;
+    }
+
+    // Add starfield to the scene
+    const starfield = createStarfield();
+
+    // Initial camera setup
+    camera.position.set(0, 0, 3000);
+    camera.lookAt(0, 0, 0);
+    console.log('Initial camera position set:', camera.position);
+
+    // Detect if device is touch-based
+    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+    console.log(`Device type detected: ${isTouchDevice ? 'Touch (Mobile/Tablet)' : 'Desktop'}`);
+
+    // Initialize appropriate controls based on device type
+    let controls;
+    let controlType;
+
+    if (isTouchDevice) {
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.1;
+      controls.rotateSpeed = 0.5;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 500;
+      controls.maxDistance = 30000;
+      controlType = 'Orbit';
+      console.log('Using OrbitControls for touch device');
+    } else {
+      controls = new FlyControls(camera, renderer.domElement);
+      controls.movementSpeed = 200;
+      controls.dragToLook = true;
+      controls.rollSpeed = 0.5;
+      controlType = 'Fly';
+      console.log('Using FlyControls for desktop');
+    }
+
+    // Set the target/lookAt point for OrbitControls
+    if (controlType === 'Orbit') {
+      controls.target.set(0, 0, 0);
+    }
+
+    // Initial update
+    controls.update();
+
+    // Generate wallet data
+    const { fartcoinWallets, goatWallets, sharedWallets } = createFakeData();
+    console.log('Generated fake wallet data');
+
+    // Create wallet sprites visualization
+    function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
+      const group = new THREE.Group();
+      group.name = groupName;
+      
+      if (!pointsArray || pointsArray.length === 0) {
+        console.error(`No points available for ${groupName}`);
+        return group;
+      }
+      
+      // Get the point texture
+      const pointTexture = createPointTexture();
+      
+      pointsArray.forEach((point, index) => {
+        if (isNaN(point.x) || isNaN(point.y) || isNaN(point.z)) {
+          return;
+        }
+        
+        const material = new THREE.SpriteMaterial({
+          map: pointTexture,
+          color: point.color || color,
+          transparent: true,
+          opacity: 0.9,
+          blending: THREE.AdditiveBlending
+        });
+        
+        const sprite = new THREE.Sprite(material);
+        sprite.position.set(point.x, point.y, point.z);
+        
+        const baseScale = point.amount ? (Math.log(point.amount) * 10) : 200;
+        const scale = Math.max(200, baseScale * 3);
+        sprite.scale.set(scale, scale, 1);
+        
+        group.add(sprite);
+      });
+      
+      scene.add(group);
+      console.log(`Added ${groupName} with ${group.children.length} sprites`);
+      
+      return group;
+    }
+
+    // Create all wallet point clouds
+    if (sharedWallets.length > 0 && fartcoinWallets.length > 0 && goatWallets.length > 0) {
+      const sharedGroup = createWalletPointCloud(sharedWallets, 'sharedWallets', 0xffffff);
+      const fartcoinGroup = createWalletPointCloud(fartcoinWallets, 'fartcoinWallets', 0x00ff00);
+      const goatTokenGroup = createWalletPointCloud(goatWallets, 'goatTokenWallets', 0x0000ff);
+      
+      // Calculate bounding box for camera positioning
+      const boundingBox = new THREE.Box3();
+      
+      // Initialize with empty but valid volume
+      boundingBox.set(
+        new THREE.Vector3(-1, -1, -1),
+        new THREE.Vector3(1, 1, 1)
+      );
+      
+      // Function to safely add all sprites from a group to the bounding box
+      const addGroupToBoundingBox = (group) => {
+        if (group && group.children && group.children.length > 0) {
+          console.log(`Adding ${group.name} with ${group.children.length} sprites to bounding box`);
+          
+          group.children.forEach(sprite => {
+            if (sprite && sprite.position) {
+              boundingBox.expandByPoint(sprite.position);
+            }
+          });
+        } else {
+          console.warn(`Group ${group?.name || 'unknown'} has no children or is invalid`);
+        }
+      };
+      
+      // Add all wallet groups to the bounding box
+      addGroupToBoundingBox(sharedGroup);
+      addGroupToBoundingBox(fartcoinGroup);
+      addGroupToBoundingBox(goatTokenGroup);
+      
+      // Fit camera to view the bounding box
+      boxCenter = boundingBox.getCenter(new THREE.Vector3());
+      const boxSize = boundingBox.getSize(new THREE.Vector3());
+      
+      // Always ensure we have a valid bounding box with minimum dimensions
+      const maxDim = Math.max(
+        Math.max(1, boxSize.x),
+        Math.max(1, boxSize.y),
+        Math.max(1, boxSize.z)
+      );
+      
+      console.log('Bounding box center:', boxCenter);
+      console.log('Bounding box size:', boxSize);
+      console.log('Max dimension:', maxDim);
+      
+      // Force a minimum size for the camera view to ensure objects are visible
+      const cameraDistance = Math.max(3000, maxDim * 2.5);
+      
+      // Position the camera to fit the bounding box
+      camera.position.set(
+        boxCenter.x, 
+        boxCenter.y + maxDim * 0.5,
+        boxCenter.z + cameraDistance
+      );
+      
+      // Look at the center of the wallet cloud
+      camera.lookAt(boxCenter);
+      
+      // Force update controls to match new camera position
+      if (controlType === 'Orbit') {
+        controls.target.copy(boxCenter);
+      }
+      
+      // Always force an update of controls after changing camera position
+      controls.update();
+      
+      console.log('Camera positioned at:', camera.position);
+      console.log('Camera looking at:', boxCenter);
+      
+      // Additional safety measure - backup camera position
+      if (isNaN(camera.position.x) || isNaN(camera.position.y) || isNaN(camera.position.z)) {
+        console.warn('Invalid camera position detected, using fallback position');
+        camera.position.set(0, 500, 3000);
+        camera.lookAt(0, 0, 0);
+        controls.update();
+      }
+      
+      console.log('Final camera position:', camera.position);
+      console.log('Camera looking at:', boxCenter);
+      
+      // Add test sphere to verify rendering is working
+      const testSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(200, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true })
+      );
+      testSphere.position.set(0, 0, 0);
+      scene.add(testSphere);
+      console.log('Added test sphere at origin');
+      
+      // Add another test sphere at boxCenter
+      const centerSphere = new THREE.Mesh(
+        new THREE.SphereGeometry(200, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true })
+      );
+      centerSphere.position.copy(boxCenter);
+      scene.add(centerSphere);
+      console.log('Added green test sphere at boxCenter:', boxCenter);
+      
+      // Add ambient and directional light
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+      directionalLight.position.set(1, 1, 1).normalize();
+      scene.add(directionalLight);
+      console.log('Added lights to the scene');
+      
+      // Add a grid helper for orientation
+      const gridHelper = new THREE.GridHelper(2000, 20, 0xff0000, 0x444444);
+      scene.add(gridHelper);
+      console.log('Added grid helper');
+      
+      // Force camera to a specific position to ensure visibility
+      camera.position.set(0, 500, 1000);
+      camera.lookAt(0, 0, 0);
+      if (controlType === 'Orbit') {
+        controls.target.set(0, 0, 0);
+      }
+      controls.update();
+      console.log('Forced camera position to:', camera.position);
+      
+      console.log('Visualization ready: Production mode enabled with',
+        sharedGroup.children.length + fartcoinGroup.children.length + goatTokenGroup.children.length,
+        'wallet sprites rendered.');
+    } else {
+      console.error('Error: Missing wallet data for visualization.');
+    }
+
+    // Update controls instructions
+    const controlsElement = document.getElementById('controls');
+    if (controlsElement) {
+      if (controlType === 'Fly') {
+        controlsElement.innerHTML = '<p>WASD/Arrows: Move | Q/E: Roll | Drag: Look</p>';
+        
+        if (!isTouchDevice) {
+          controlsElement.innerHTML += '<p>Use keyboard to navigate through the space</p>';
+        }
+      } else {
+        controlsElement.innerHTML = '<p>Left Click: Rotate | Right Click: Pan | Scroll: Zoom</p>';
+      }
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Render loop
+    const clock = new THREE.Clock();
+    let frameCounter = 0;
+    const logInterval = 60;
+
+    // Store initial camera position and target for recovery if needed
+    const initialCameraPosition = camera.position.clone();
+    const initialCameraTarget = boxCenter.clone();
+    console.log('Stored initial camera state:', initialCameraPosition, initialCameraTarget);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      const delta = clock.getDelta();
+      
+      // Update controls
+      controls.update(delta);
+      
+      // Subtle starfield rotation for ambient movement
+      if (starfield) {
+        starfield.rotation.y += delta * 0.01;
+        starfield.rotation.x += delta * 0.005;
+      }
+      
+      // Log camera position periodically
+      frameCounter++;
+      if (frameCounter % logInterval === 0) {
+        console.log(`Camera position: (${camera.position.x.toFixed(0)}, ${camera.position.y.toFixed(0)}, ${camera.position.z.toFixed(0)})`);
+        console.log(`Active control type: ${controlType}`);
+        
+        // Check if camera is valid
+        if (isNaN(camera.position.x) || isNaN(camera.position.y) || isNaN(camera.position.z)) {
+          console.warn('Invalid camera position detected during animation, resetting to initial position');
+          camera.position.copy(initialCameraPosition);
+          
+          if (controlType === 'Orbit') {
+            controls.target.copy(initialCameraTarget);
+          } else {
+            camera.lookAt(initialCameraTarget);
+          }
+          
+          controls.update();
+        }
+        
+        if (frameCounter > 1000) frameCounter = 0;
+      }
+      
+      renderer.render(scene, camera);
+    }
+
+    animate();
+  </script>
+  
+  <div id="controls">
+    <p>Left Click: Rotate | Right Click: Pan | Scroll: Zoom</p>
+  </div>
+</body>
+</html>
