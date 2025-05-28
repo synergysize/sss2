@@ -4,8 +4,8 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V25 - Optimized sphere spacing to prevent overlapping hollow spheres
-console.log("Starting 3D Blockchain Visualizer v25");
+// V26 - Added hover interactions, color coding, and wallet metadata display
+console.log("Starting 3D Blockchain Visualizer v26");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -61,7 +61,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v25';
+versionDisplay.innerHTML = 'v26';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -72,6 +72,36 @@ scene.add(directionalLight);
 
 // Define boxCenter at global scope with a default value
 let boxCenter = new THREE.Vector3(0, 0, 0);
+
+// Setup raycaster for hover interactions
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredObject = null;
+let hoveredOriginalScale = null;
+let hoveredOriginalColor = null;
+const hoverScaleFactor = 1.5; // How much to scale up on hover
+const hoverBrightnessFactor = 1.3; // How much to brighten on hover
+
+// Get tooltip element
+const tooltip = document.getElementById('wallet-tooltip');
+
+// Track mouse position for raycasting
+function onMouseMove(event) {
+  // Calculate mouse position in normalized device coordinates
+  // (-1 to +1) for both components
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  
+  // Update tooltip position to follow mouse
+  if (tooltip) {
+    // Position tooltip with offset from cursor
+    tooltip.style.left = (event.clientX + 15) + 'px';
+    tooltip.style.top = (event.clientY + 15) + 'px';
+  }
+}
+
+// Add mouse move listener
+window.addEventListener('mousemove', onMouseMove, false);
 
 // Create starfield background
 function createStarfield() {
@@ -292,10 +322,12 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor) {
     // Add to shell group
     sphericalShellGroup.add(walletNode);
     
-    // Store original position for potential static display option
+    // Store original position and parent's wallet data
     walletNode.userData = {
       originalPosition: new THREE.Vector3(x, yPos, z),
-      shellRadius: shellRadius
+      shellRadius: shellRadius,
+      originalScale: walletScale,
+      originalColor: walletNodeMaterial.color.getStyle()
     };
   }
   
@@ -343,10 +375,24 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
     sprite.position.set(point.x, point.y, point.z);
     
     // Calculate scale based on amount, with minimum scale to ensure visibility
-    const baseScale = point.amount ? (Math.log(point.amount) * 10) : 200;
+    const baseScale = point.totalHolding ? (Math.log(point.totalHolding) * 10) : 200;
     const scale = Math.max(200, baseScale * 3);
     sprite.scale.set(scale, scale, 1);
-    sprite.userData = { isLevel1Wallet: true, parentIndex: index };
+    
+    // Store wallet data in userData for raycasting and hover effects
+    sprite.userData = { 
+      isLevel1Wallet: true, 
+      parentIndex: index,
+      walletData: {
+        address: point.address,
+        fartAmount: point.fartAmount || 0,
+        goatAmount: point.goatAmount || 0,
+        totalHolding: point.totalHolding || 0,
+        walletType: point.walletType || 'unknown'
+      },
+      originalScale: scale,
+      originalColor: point.color
+    };
     
     // Add to group
     group.add(sprite);
@@ -370,7 +416,8 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
           Math.random() - 0.5, 
           Math.random() - 0.5, 
           Math.random() - 0.5
-        ).normalize() // Random rotation axis for more interesting movement
+        ).normalize(), // Random rotation axis for more interesting movement
+        walletData: sprite.userData.walletData // Copy wallet data from parent
       };
       
       level2Group.add(level2Cluster);
@@ -485,6 +532,28 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  
+  // Reset any active hover state on resize
+  if (hoveredObject) {
+    // Restore original scale
+    hoveredObject.scale.set(
+      hoveredObject.userData.originalScale, 
+      hoveredObject.userData.originalScale, 
+      1
+    );
+    
+    // Restore original color
+    if (hoveredObject.material) {
+      hoveredObject.material.color.set(hoveredObject.userData.originalColor);
+    }
+    
+    hoveredObject = null;
+    
+    // Hide tooltip
+    if (tooltip) {
+      tooltip.style.display = 'none';
+    }
+  }
   
   // Check if device type changed (e.g., orientation change might affect detection)
   const currentIsTouchDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -739,6 +808,141 @@ function animate() {
     }
     
     if (frameCounter > 1000) frameCounter = 0;
+  }
+  
+  // Perform raycasting for hover detection
+  raycaster.setFromCamera(mouse, camera);
+  
+  // Create array of all point clouds to raycast against
+  const pointGroups = [];
+  
+  // Add all wallet groups to raycasting targets
+  const sharedGroup = scene.getObjectByName('sharedWallets');
+  const fartcoinGroup = scene.getObjectByName('fartcoinWallets');
+  const goatTokenGroup = scene.getObjectByName('goatTokenWallets');
+  
+  if (sharedGroup) pointGroups.push(sharedGroup);
+  if (fartcoinGroup) pointGroups.push(fartcoinGroup);
+  if (goatTokenGroup) pointGroups.push(goatTokenGroup);
+  
+  // Get wallet points to test against
+  let walletPoints = [];
+  pointGroups.forEach(group => {
+    if (group && group.children) {
+      walletPoints = walletPoints.concat(group.children);
+    }
+  });
+  
+  // Perform raycast
+  const intersects = raycaster.intersectObjects(walletPoints, false);
+  
+  // Handle tooltip and hover effects
+  if (intersects.length > 0) {
+    const object = intersects[0].object;
+    
+    // Only process if the object has wallet data
+    if (object.userData && object.userData.walletData) {
+      // If hovering over a new object
+      if (hoveredObject !== object) {
+        // Reset previous hover state
+        if (hoveredObject) {
+          // Restore original scale and color
+          hoveredObject.scale.set(
+            hoveredObject.userData.originalScale, 
+            hoveredObject.userData.originalScale, 
+            1
+          );
+          
+          // Restore original color
+          if (hoveredObject.material) {
+            hoveredObject.material.color.set(hoveredObject.userData.originalColor);
+          }
+        }
+        
+        // Set new hovered object
+        hoveredObject = object;
+        
+        // Scale up and brighten the hovered object
+        const newScale = object.userData.originalScale * hoverScaleFactor;
+        object.scale.set(newScale, newScale, 1);
+        
+        // Brighten the color
+        if (object.material) {
+          // Store original color if not already stored
+          if (!object.userData.storedOriginalColor) {
+            object.userData.storedOriginalColor = object.material.color.clone();
+          }
+          
+          // Create brighter version of the original color
+          const origColor = new THREE.Color(object.userData.originalColor);
+          const brighterColor = new THREE.Color(
+            Math.min(1, origColor.r * hoverBrightnessFactor),
+            Math.min(1, origColor.g * hoverBrightnessFactor),
+            Math.min(1, origColor.b * hoverBrightnessFactor)
+          );
+          
+          // Apply brighter color
+          object.material.color.copy(brighterColor);
+        }
+        
+        // Show and update tooltip
+        if (tooltip) {
+          const walletData = object.userData.walletData;
+          
+          // Format wallet address (first 8 + last 4 characters)
+          const address = walletData.address;
+          const shortAddress = address.length > 12 
+            ? `${address.substring(0, 8)}...${address.substring(address.length-4)}` 
+            : address;
+          
+          // Update tooltip content
+          document.querySelector('.tooltip-address').textContent = shortAddress;
+          
+          // Format holdings
+          const fartAmountFormatted = walletData.fartAmount.toLocaleString(undefined, {
+            maximumFractionDigits: 2
+          });
+          
+          const goatAmountFormatted = walletData.goatAmount.toLocaleString(undefined, {
+            maximumFractionDigits: 2
+          });
+          
+          const totalAmountFormatted = walletData.totalHolding.toLocaleString(undefined, {
+            maximumFractionDigits: 2
+          });
+          
+          // Update specific holdings display
+          document.querySelector('.tooltip-fartcoin').textContent = `Fartcoin: ${fartAmountFormatted}`;
+          document.querySelector('.tooltip-goat').textContent = `Goat: ${goatAmountFormatted}`;
+          document.querySelector('.tooltip-total').textContent = `Total Value: ${totalAmountFormatted}`;
+          
+          // Show the tooltip
+          tooltip.style.display = 'block';
+        }
+      }
+    }
+  } else if (hoveredObject) {
+    // No longer hovering over anything, reset state
+    
+    // Restore original scale
+    hoveredObject.scale.set(
+      hoveredObject.userData.originalScale, 
+      hoveredObject.userData.originalScale, 
+      1
+    );
+    
+    // Restore original color
+    if (hoveredObject.material) {
+      hoveredObject.material.color.set(hoveredObject.userData.originalColor);
+    }
+    
+    // Clear hovered object
+    hoveredObject = null;
+    
+    // Hide tooltip
+    if (tooltip) {
+      tooltip.style.display = 'none';
+    }
   }
   
   // Render the scene

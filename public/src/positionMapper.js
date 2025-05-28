@@ -52,7 +52,8 @@ const mapSharedWallets = () => {
     y += randomBetween(-baseRadius/18, baseRadius/18);
     z += randomBetween(-baseRadius/18, baseRadius/18);
     
-    // Add brightness based on holdings
+    // White color for shared wallets (wallets holding both Fartcoin and Goat tokens)
+    // Brightness correlates with token amount
     const brightness = Math.min(255, Math.floor(200 + totalHolding / 1000000));
     const color = `rgb(${brightness}, ${brightness}, ${brightness})`;
     
@@ -61,6 +62,8 @@ const mapSharedWallets = () => {
       address: wallet.address,
       fartAmount: wallet.fartAmount,
       goatAmount: wallet.goatAmount,
+      totalHolding,
+      walletType: 'shared',
       color
     };
   });
@@ -96,14 +99,18 @@ const mapFartcoinWallets = () => {
     y += randomBetween(-baseRadius/12, baseRadius/12);
     z += randomBetween(-baseRadius/12, baseRadius/12);
     
-    // Generate green-tinted color based on holdings
+    // Green color for Fartcoin-only wallets
+    // Brightness correlates with token amount
     const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
-    const color = `rgb(0, ${brightness + 55}, ${Math.floor(brightness/2)})`;
+    const color = `rgb(0, ${brightness + 55}, 0)`;
     
     return {
       x, y, z,
       address: wallet.address,
-      amount: wallet.amount,
+      fartAmount: wallet.amount,
+      goatAmount: 0,
+      totalHolding: wallet.amount,
+      walletType: 'fartcoin',
       color
     };
   });
@@ -139,14 +146,18 @@ const mapGoatTokenWallets = () => {
     y += randomBetween(-baseRadius/12, baseRadius/12);
     z += randomBetween(-baseRadius/12, baseRadius/12);
     
-    // Generate blue-tinted color based on holdings
+    // Blue color for Goat-only wallets
+    // Brightness correlates with token amount
     const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
-    const color = `rgb(${Math.floor(brightness/2)}, ${Math.floor(brightness/2)}, ${brightness + 55})`;
+    const color = `rgb(0, 0, ${brightness + 55})`;
     
     return {
       x, y, z,
       address: wallet.address,
-      amount: wallet.amount,
+      fartAmount: 0,
+      goatAmount: wallet.amount,
+      totalHolding: wallet.amount,
+      walletType: 'goat',
       color
     };
   });

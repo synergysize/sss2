@@ -34,6 +34,48 @@
       border-radius: 5px;
       font-size: 12px;
     }
+    #wallet-tooltip {
+      position: absolute;
+      display: none;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      pointer-events: none;
+      z-index: 1000;
+      max-width: 250px;
+      transition: opacity 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      box-shadow: 0 0 10px rgba(0, 100, 255, 0.5);
+    }
+    .tooltip-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: #88ccff;
+    }
+    .tooltip-address {
+      font-family: monospace;
+      font-size: 12px;
+      margin-bottom: 8px;
+      color: #aaccff;
+      word-break: break-all;
+    }
+    .tooltip-holdings {
+      margin-bottom: 5px;
+    }
+    .tooltip-fartcoin {
+      color: #88ff88;
+    }
+    .tooltip-goat {
+      color: #8888ff;
+    }
+    .tooltip-total {
+      margin-top: 8px;
+      font-weight: bold;
+      color: #ffffff;
+    }
   </style>
 </head>
 <body>
@@ -44,6 +86,17 @@
   
   <div id="controls">
     <p>Left Click: Rotate | Right Click: Pan | Scroll: Zoom</p>
+    <p>Hover over wallet points for details</p>
+  </div>
+  
+  <div id="wallet-tooltip">
+    <div class="tooltip-title">Wallet Details</div>
+    <div class="tooltip-address">0x0000...0000</div>
+    <div class="tooltip-holdings">
+      <div class="tooltip-fartcoin">Fartcoin: 0</div>
+      <div class="tooltip-goat">Goat: 0</div>
+    </div>
+    <div class="tooltip-total">Total Value: 0</div>
   </div>
   
   <script type="importmap">
