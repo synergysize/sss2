@@ -4,8 +4,8 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V20 - Working version
-console.log("Starting 3D Blockchain Visualizer v20");
+// V21 - Working version with 3D spherical wallet clusters
+console.log("Starting 3D Blockchain Visualizer v21");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -48,6 +48,18 @@ scene.background = new THREE.Color(0x000815);
 // Add strong lighting for better visibility
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
 scene.add(ambientLight);
+
+// Add version display in top-right corner
+const versionDisplay = document.createElement('div');
+versionDisplay.style.position = 'absolute';
+versionDisplay.style.top = '10px';
+versionDisplay.style.right = '10px';
+versionDisplay.style.color = 'white';
+versionDisplay.style.opacity = '0.3';
+versionDisplay.style.fontSize = '16px';
+versionDisplay.style.fontFamily = 'Arial, sans-serif';
+versionDisplay.innerHTML = 'v21';
+document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
 directionalLight.position.set(1, 1, 1).normalize();
@@ -240,10 +252,13 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor) {
   
   // Create 10 smaller orbiting spheres for Level 2
   for (let i = 0; i < 10; i++) {
-    // Calculate orbit position using spherical coordinates
+    // Calculate orbit position using spherical coordinates for full 3D sphere
     const radius = parentScale * 0.15; // Keep tight orbit
-    const theta = i * (Math.PI * 2 / 10); // Evenly distribute
-    const phi = Math.PI / 2 + (Math.random() * 0.5 - 0.25); // Slight variation from equator
+    
+    // Use Fibonacci sphere distribution for even spacing across the entire sphere
+    const goldenRatio = (1 + Math.sqrt(5)) / 2;
+    const theta = 2 * Math.PI * i / goldenRatio; // Azimuthal angle
+    const phi = Math.acos(1 - 2 * (i + 0.5) / 10); // Polar angle (full range from 0 to π)
     
     // Convert to Cartesian coordinates
     const x = radius * Math.sin(phi) * Math.cos(theta);
@@ -655,10 +670,15 @@ function animate() {
               const orbitRadius = cluster.userData.orbitRadius;
               const angle = cluster.userData.orbitAngle;
               
-              // Calculate orbit position with slight random wobble
-              const offsetX = Math.cos(angle) * orbitRadius;
-              const offsetY = Math.sin(angle) * orbitRadius;
-              const offsetZ = Math.sin(angle * 0.7) * orbitRadius * 0.3;
+              // Calculate 3D spherical orbit position
+              // Use two angles for full 3D orbit (horizontal and vertical)
+              const horizontalAngle = angle;
+              const verticalAngle = angle * 0.7; // Different speed for vertical orbit
+              
+              // Convert from spherical to Cartesian coordinates
+              const offsetX = Math.cos(horizontalAngle) * Math.sin(verticalAngle) * orbitRadius;
+              const offsetY = Math.sin(horizontalAngle) * Math.sin(verticalAngle) * orbitRadius;
+              const offsetZ = Math.cos(verticalAngle) * orbitRadius;
               
               // Set position relative to parent wallet
               cluster.position.set(
