@@ -4,8 +4,8 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V26 - Added hover interactions, color coding, and wallet metadata display
-console.log("Starting 3D Blockchain Visualizer v26");
+// V27 - Fixed hover interactions, color coding, and wallet metadata display
+console.log("Starting 3D Blockchain Visualizer v27");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -61,7 +61,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v26';
+versionDisplay.innerHTML = 'v27';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -73,8 +73,11 @@ scene.add(directionalLight);
 // Define boxCenter at global scope with a default value
 let boxCenter = new THREE.Vector3(0, 0, 0);
 
-// Setup raycaster for hover interactions
+// Setup raycaster for hover interactions with adjusted parameters for better detection
 const raycaster = new THREE.Raycaster();
+// Increase the precision for sprites
+raycaster.params.Sprite = { threshold: 15 }; // Increase from default 1 to 15
+console.log('Raycaster initialized with adjusted sprite threshold:', raycaster.params.Sprite.threshold);
 const mouse = new THREE.Vector2();
 let hoveredObject = null;
 let hoveredOriginalScale = null;
@@ -82,8 +85,17 @@ let hoveredOriginalColor = null;
 const hoverScaleFactor = 1.5; // How much to scale up on hover
 const hoverBrightnessFactor = 1.3; // How much to brighten on hover
 
-// Get tooltip element
+// Get tooltip element and ensure it exists
 const tooltip = document.getElementById('wallet-tooltip');
+console.log('Tooltip element found:', tooltip !== null);
+
+// Make sure tooltip is invisible initially
+if (tooltip) {
+  tooltip.style.display = 'none';
+  console.log('Set tooltip to hidden initially');
+} else {
+  console.error('CRITICAL: wallet-tooltip element not found in the DOM!');
+}
 
 // Track mouse position for raycasting
 function onMouseMove(event) {
@@ -92,11 +104,18 @@ function onMouseMove(event) {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   
+  // Debug: Log mouse coordinates occasionally
+  if (Math.random() < 0.01) { // Only log 1% of events to avoid flooding
+    console.log(`Mouse position: (${mouse.x.toFixed(2)}, ${mouse.y.toFixed(2)})`);
+  }
+  
   // Update tooltip position to follow mouse
   if (tooltip) {
     // Position tooltip with offset from cursor
     tooltip.style.left = (event.clientX + 15) + 'px';
     tooltip.style.top = (event.clientY + 15) + 'px';
+  } else {
+    console.warn('Tooltip element not found in the DOM');
   }
 }
 
@@ -813,6 +832,12 @@ function animate() {
   // Perform raycasting for hover detection
   raycaster.setFromCamera(mouse, camera);
   
+  // Debug: Log raycaster status every few frames
+  if (frameCounter % 120 === 0) {
+    console.log(`Raycaster origin: (${raycaster.ray.origin.x.toFixed(2)}, ${raycaster.ray.origin.y.toFixed(2)}, ${raycaster.ray.origin.z.toFixed(2)})`);
+    console.log(`Raycaster direction: (${raycaster.ray.direction.x.toFixed(2)}, ${raycaster.ray.direction.y.toFixed(2)}, ${raycaster.ray.direction.z.toFixed(2)})`);
+  }
+  
   // Create array of all point clouds to raycast against
   const pointGroups = [];
   
@@ -820,6 +845,11 @@ function animate() {
   const sharedGroup = scene.getObjectByName('sharedWallets');
   const fartcoinGroup = scene.getObjectByName('fartcoinWallets');
   const goatTokenGroup = scene.getObjectByName('goatTokenWallets');
+  
+  // Debug: Log group existence
+  if (frameCounter % 120 === 0) {
+    console.log(`Wallet groups found: shared=${!!sharedGroup}, fartcoin=${!!fartcoinGroup}, goat=${!!goatTokenGroup}`);
+  }
   
   if (sharedGroup) pointGroups.push(sharedGroup);
   if (fartcoinGroup) pointGroups.push(fartcoinGroup);
@@ -833,8 +863,19 @@ function animate() {
     }
   });
   
+  // Debug: Log wallet points count
+  if (frameCounter % 120 === 0) {
+    console.log(`Raycast targets: ${walletPoints.length} wallet points`);
+  }
+  
   // Perform raycast
   const intersects = raycaster.intersectObjects(walletPoints, false);
+  
+  // Debug: Log intersections
+  if (intersects.length > 0 && frameCounter % 10 === 0) {
+    console.log(`Found ${intersects.length} intersections with wallet points`);
+    console.log(`First intersection: distance=${intersects[0].distance.toFixed(2)}, object=${intersects[0].object.userData?.isLevel1Wallet ? 'Level 1 Wallet' : 'Other'}`);
+  }
   
   // Handle tooltip and hover effects
   if (intersects.length > 0) {
@@ -842,10 +883,19 @@ function animate() {
     
     // Only process if the object has wallet data
     if (object.userData && object.userData.walletData) {
+      // Debug: Log wallet data found
+      if (frameCounter % 30 === 0) {
+        console.log('Found wallet data in intersection:', object.userData.walletData);
+      }
+      
       // If hovering over a new object
       if (hoveredObject !== object) {
+        console.log('Hovering over new wallet:', object.userData.walletData.address);
+        
         // Reset previous hover state
         if (hoveredObject) {
+          console.log('Resetting previous hover state');
+          
           // Restore original scale and color
           hoveredObject.scale.set(
             hoveredObject.userData.originalScale, 
@@ -855,38 +905,53 @@ function animate() {
           
           // Restore original color
           if (hoveredObject.material) {
+            console.log(`Restoring original color: ${hoveredObject.userData.originalColor}`);
             hoveredObject.material.color.set(hoveredObject.userData.originalColor);
+          } else {
+            console.warn('Previous hovered object has no material');
           }
         }
         
         // Set new hovered object
         hoveredObject = object;
+        console.log('Set new hovered object');
         
         // Scale up and brighten the hovered object
         const newScale = object.userData.originalScale * hoverScaleFactor;
+        console.log(`Scaling up to: ${newScale} (original: ${object.userData.originalScale})`);
         object.scale.set(newScale, newScale, 1);
         
         // Brighten the color
         if (object.material) {
+          console.log('Brightening the color of hovered object');
+          
           // Store original color if not already stored
           if (!object.userData.storedOriginalColor) {
             object.userData.storedOriginalColor = object.material.color.clone();
+            console.log('Stored original color');
           }
           
           // Create brighter version of the original color
           const origColor = new THREE.Color(object.userData.originalColor);
+          console.log(`Original color: r=${origColor.r.toFixed(2)}, g=${origColor.g.toFixed(2)}, b=${origColor.b.toFixed(2)}`);
+          
           const brighterColor = new THREE.Color(
             Math.min(1, origColor.r * hoverBrightnessFactor),
             Math.min(1, origColor.g * hoverBrightnessFactor),
             Math.min(1, origColor.b * hoverBrightnessFactor)
           );
+          console.log(`Brighter color: r=${brighterColor.r.toFixed(2)}, g=${brighterColor.g.toFixed(2)}, b=${brighterColor.b.toFixed(2)}`);
           
           // Apply brighter color
           object.material.color.copy(brighterColor);
+          console.log('Applied brighter color');
+        } else {
+          console.warn('Hovered object has no material');
         }
         
         // Show and update tooltip
         if (tooltip) {
+          console.log('Updating tooltip');
           const walletData = object.userData.walletData;
           
           // Format wallet address (first 8 + last 4 characters)
@@ -894,9 +959,15 @@ function animate() {
           const shortAddress = address.length > 12 
             ? `${address.substring(0, 8)}...${address.substring(address.length-4)}` 
             : address;
+          console.log(`Formatted address: ${shortAddress}`);
           
           // Update tooltip content
-          document.querySelector('.tooltip-address').textContent = shortAddress;
+          const addressElement = document.querySelector('.tooltip-address');
+          if (addressElement) {
+            addressElement.textContent = shortAddress;
+          } else {
+            console.error('Could not find .tooltip-address element');
+          }
           
           // Format holdings
           const fartAmountFormatted = walletData.fartAmount.toLocaleString(undefined, {
@@ -911,18 +982,45 @@ function animate() {
             maximumFractionDigits: 2
           });
           
+          console.log(`Holdings - Fartcoin: ${fartAmountFormatted}, Goat: ${goatAmountFormatted}, Total: ${totalAmountFormatted}`);
+          
           // Update specific holdings display
-          document.querySelector('.tooltip-fartcoin').textContent = `Fartcoin: ${fartAmountFormatted}`;
-          document.querySelector('.tooltip-goat').textContent = `Goat: ${goatAmountFormatted}`;
-          document.querySelector('.tooltip-total').textContent = `Total Value: ${totalAmountFormatted}`;
+          const fartcoinElement = document.querySelector('.tooltip-fartcoin');
+          const goatElement = document.querySelector('.tooltip-goat');
+          const totalElement = document.querySelector('.tooltip-total');
+          
+          if (fartcoinElement) {
+            fartcoinElement.textContent = `Fartcoin: ${fartAmountFormatted}`;
+          } else {
+            console.error('Could not find .tooltip-fartcoin element');
+          }
+          
+          if (goatElement) {
+            goatElement.textContent = `Goat: ${goatAmountFormatted}`;
+          } else {
+            console.error('Could not find .tooltip-goat element');
+          }
+          
+          if (totalElement) {
+            totalElement.textContent = `Total Value: ${totalAmountFormatted}`;
+          } else {
+            console.error('Could not find .tooltip-total element');
+          }
           
           // Show the tooltip
+          console.log('Displaying tooltip');
           tooltip.style.display = 'block';
+          
+          // Debug: Check tooltip position
+          console.log(`Tooltip position: left=${tooltip.style.left}, top=${tooltip.style.top}`);
+        } else {
+          console.error('Tooltip element not found while trying to show it');
         }
       }
     }
   } else if (hoveredObject) {
     // No longer hovering over anything, reset state
+    console.log('No longer hovering over anything, resetting state');
     
     // Restore original scale
     hoveredObject.scale.set(
@@ -933,15 +1031,22 @@ function animate() {
     
     // Restore original color
     if (hoveredObject.material) {
+      console.log(`Restoring original color on hover end: ${hoveredObject.userData.originalColor}`);
       hoveredObject.material.color.set(hoveredObject.userData.originalColor);
+    } else {
+      console.warn('Hovered object has no material when trying to restore color');
     }
     
     // Clear hovered object
     hoveredObject = null;
+    console.log('Cleared hovered object reference');
     
     // Hide tooltip
     if (tooltip) {
+      console.log('Hiding tooltip');
       tooltip.style.display = 'none';
+    } else {
+      console.warn('Tooltip element not found when trying to hide it');
     }
   }
   
