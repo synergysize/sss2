@@ -77,9 +77,9 @@ let boxCenter = new THREE.Vector3(0, 0, 0);
 
 // Setup raycaster for hover interactions with adjusted parameters for better detection
 const raycaster = new THREE.Raycaster();
-// Increase the precision for sprites
-raycaster.params.Sprite = { threshold: 15 }; // Increase from default 1 to 15
-console.log('Raycaster initialized with adjusted sprite threshold:', raycaster.params.Sprite.threshold);
+// Dramatically increase the precision for sprites to ensure we can hit them
+raycaster.params.Sprite = { threshold: 50 }; // Increase from 15 to 50 for much easier hover detection
+console.log('Raycaster initialized with very high sprite threshold:', raycaster.params.Sprite.threshold);
 const mouse = new THREE.Vector2();
 let hoveredObject = null;
 let hoveredOriginalScale = null;
@@ -658,17 +658,18 @@ function animate() {
   // Handle hover animation for better visibility
   if (hoveredObject && hoveredObject.userData.pulseAnimation) {
     hoveredObject.userData.pulseTime += delta;
-    const pulseScale = hoveredObject.userData.originalScale * (3 + Math.sin(hoveredObject.userData.pulseTime * 10) * 0.5);
+    // More extreme pulsing - 5x to 8x original size
+    const pulseScale = hoveredObject.userData.originalScale * (5 + Math.sin(hoveredObject.userData.pulseTime * 8) * 3);
     hoveredObject.scale.set(pulseScale, pulseScale, 1);
     
-    // Also pulse the brightness
+    // Also pulse the brightness with more extreme values and different color
     if (hoveredObject.material) {
-      const color = new THREE.Color(hoveredObject.userData.originalColor);
-      const pulseIntensity = 1.3 + Math.sin(hoveredObject.userData.pulseTime * 10) * 0.3;
+      // Use bright yellow/white for maximum visibility
+      const pulseIntensity = 1.5 + Math.sin(hoveredObject.userData.pulseTime * 8) * 0.5;
       hoveredObject.material.color.setRGB(
-        Math.min(1, color.r * pulseIntensity),
-        Math.min(1, color.g * pulseIntensity),
-        Math.min(1, color.b * pulseIntensity)
+        1.0, // Always full red
+        1.0, // Always full green
+        Math.min(1, 0.7 + Math.sin(hoveredObject.userData.pulseTime * 16) * 0.3) // Pulsing blue
       );
     }
   }
