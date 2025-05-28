@@ -4,8 +4,8 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V22 - Implemented true 3D spherical wallet distribution
-console.log("Starting 3D Blockchain Visualizer v22");
+// V23 - Implemented hollow spherical shells with nodes at center
+console.log("Starting 3D Blockchain Visualizer v23");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -58,7 +58,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v22';
+versionDisplay.innerHTML = 'v23';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -231,61 +231,75 @@ if (sharedPoints.length === 0 || fartcoinPoints.length === 0 || goatTokenPoints.
   console.error('ERROR: Missing wallet data for visualization!');
 }
 
-// Function to create a Level 2 cluster that orbits a Level 1 wallet
+// Function to create a Level 2 cluster forming a hollow sphere around a Level 1 wallet
 function createLevel2Cluster(parentPosition, parentScale, parentColor) {
-  // Create a group to hold the mini-cluster
-  const miniClusterGroup = new THREE.Group();
+  // Create a group to hold the hollow spherical shell
+  const sphericalShellGroup = new THREE.Group();
   
-  // Create central mini-node (gray or faded color)
+  // Create central parent node that will sit at the center of the sphere
   const centralNodeMaterial = new THREE.SpriteMaterial({
     map: pointTexture,
-    color: new THREE.Color(parentColor).lerp(new THREE.Color(0x333333), 0.7), // Fade to gray
+    color: parentColor, // Use parent color for visibility
     transparent: true,
-    opacity: 0.7,
+    opacity: 0.9,
     blending: THREE.AdditiveBlending
   });
   
   const centralNode = new THREE.Sprite(centralNodeMaterial);
-  centralNode.scale.set(parentScale * 0.3, parentScale * 0.3, 1); // Scale down from parent
-  centralNode.position.set(0, 0, 0); // Will be positioned relative to parent later
-  miniClusterGroup.add(centralNode);
+  centralNode.scale.set(parentScale * 0.5, parentScale * 0.5, 1); // Make center node visible
+  centralNode.position.set(0, 0, 0); // Center point of the sphere
+  sphericalShellGroup.add(centralNode);
   
-  // Create 10 smaller orbiting spheres for Level 2
-  for (let i = 0; i < 10; i++) {
-    // Calculate orbit position using spherical coordinates for full 3D sphere
-    const radius = parentScale * 0.15; // Keep tight orbit
-    
-    // Use Fibonacci sphere distribution for even spacing across the entire sphere
+  // Define the number of wallet points to distribute on the sphere
+  const numPoints = 12; // Increased from 10 for better distribution
+  
+  // Fixed radius for the hollow sphere - significantly larger than before for clear separation
+  const shellRadius = parentScale * 2.0; // Fixed distance from center to all points on sphere
+  
+  // Create evenly distributed points on the sphere surface using Fibonacci spiral
+  for (let i = 0; i < numPoints; i++) {
+    // Use Fibonacci sphere distribution for perfect even spacing across the sphere surface
     const goldenRatio = (1 + Math.sqrt(5)) / 2;
-    const theta = 2 * Math.PI * i / goldenRatio; // Azimuthal angle
-    const phi = Math.acos(1 - 2 * (i + 0.5) / 10); // Polar angle (full range from 0 to π)
+    const y = 1 - (i / (numPoints - 1)) * 2; // y goes from 1 to -1
+    const radius = Math.sqrt(1 - y * y);     // Radius at y
     
-    // Convert to Cartesian coordinates
-    const x = radius * Math.sin(phi) * Math.cos(theta);
-    const y = radius * Math.sin(phi) * Math.sin(theta);
-    const z = radius * Math.cos(phi);
+    // Golden angle increment
+    const theta = 2 * Math.PI * i / goldenRatio;
     
-    // Create mini-sphere material with reduced opacity
-    const miniSphereMaterial = new THREE.SpriteMaterial({
+    // Convert to Cartesian coordinates (fixed radius for hollow sphere)
+    const x = radius * Math.cos(theta) * shellRadius;
+    const z = radius * Math.sin(theta) * shellRadius;
+    const yPos = y * shellRadius;
+    
+    // Create wallet node material
+    const walletNodeMaterial = new THREE.SpriteMaterial({
       map: pointTexture,
-      color: new THREE.Color(parentColor).lerp(new THREE.Color(0xffffff), 0.5), // Lighter version
+      color: new THREE.Color(parentColor).lerp(new THREE.Color(0xffffff), 0.3), // Slightly lighter version
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.8,
       blending: THREE.AdditiveBlending
     });
     
-    const miniSphere = new THREE.Sprite(miniSphereMaterial);
-    const miniScale = parentScale * 0.12; // Much smaller than parent
-    miniSphere.scale.set(miniScale, miniScale, 1);
-    miniSphere.position.set(x, y, z);
+    // Create the wallet sprite
+    const walletNode = new THREE.Sprite(walletNodeMaterial);
+    const walletScale = parentScale * 0.3; // Larger than before for better visibility
+    walletNode.scale.set(walletScale, walletScale, 1);
+    walletNode.position.set(x, yPos, z);
     
-    miniClusterGroup.add(miniSphere);
+    // Add to shell group
+    sphericalShellGroup.add(walletNode);
+    
+    // Store original position for potential static display option
+    walletNode.userData = {
+      originalPosition: new THREE.Vector3(x, yPos, z),
+      shellRadius: shellRadius
+    };
   }
   
-  // Position the entire mini-cluster at parent position (will be offset in animation)
-  miniClusterGroup.position.copy(parentPosition);
+  // Position the entire shell group at parent position
+  sphericalShellGroup.position.copy(parentPosition);
   
-  return miniClusterGroup;
+  return sphericalShellGroup;
 }
 
 // Function to create a wallet point cloud with sprites
@@ -346,12 +360,14 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
       // Store reference to parent for orbit animation
       level2Cluster.userData = { 
         parentIndex: index,
-        orbitRadius: scale * 0.6, // Orbit radius based on parent scale
-        orbitSpeed: 0.2 + Math.random() * 0.3, // Random speed for horizontal
-        verticalSpeed: 0.15 + Math.random() * 0.2, // Independent speed for vertical
-        horizontalAngle: Math.random() * Math.PI * 2, // Random starting horizontal angle
-        verticalAngle: Math.random() * Math.PI, // Random starting vertical angle (0 to π)
-        parentSprite: sprite
+        shellRadius: scale * 2.0, // Fixed radius for hollow sphere
+        rotationSpeed: 0.1 + Math.random() * 0.15, // Overall rotation speed of sphere
+        parentSprite: sprite,
+        rotationAxis: new THREE.Vector3(
+          Math.random() - 0.5, 
+          Math.random() - 0.5, 
+          Math.random() - 0.5
+        ).normalize() // Random rotation axis for more interesting movement
       };
       
       level2Group.add(level2Cluster);
@@ -665,39 +681,31 @@ function animate() {
             const parentSprite = cluster.userData.parentSprite;
             
             if (parentSprite) {
-              // Orbit angle updates are now handled separately for horizontal and vertical
+              // For hollow spherical shells, we maintain the sphere structure
+              // and rotate the entire sphere around its center (the parent node)
               
-              // Calculate new position in orbit
-              const orbitRadius = cluster.userData.orbitRadius;
+              // Get parent position and rotation data
+              const parentPos = parentSprite.position;
               
-              // Calculate true 3D spherical orbit position with independent angles
-              // Update both angles independently for true spherical movement
-              let horizontalAngle = cluster.userData.horizontalAngle;
-              let verticalAngle = cluster.userData.verticalAngle;
+              // Apply rotation to the entire spherical shell group
+              // This maintains the hollow sphere structure while animating
               
-              // Update angles with different speeds for more natural movement
-              horizontalAngle += delta * cluster.userData.orbitSpeed;
-              verticalAngle += delta * cluster.userData.verticalSpeed;
+              // Create rotation quaternion based on time and random axis
+              const rotationSpeed = cluster.userData.rotationSpeed;
+              const rotationAxis = cluster.userData.rotationAxis;
               
-              // Keep the vertical angle within the range [0, π]
-              // This ensures we cover the whole sphere from pole to pole
-              verticalAngle = verticalAngle % Math.PI;
+              // Apply incremental rotation to the entire group
+              cluster.rotateOnAxis(rotationAxis, delta * rotationSpeed);
               
-              // Store updated angles
-              cluster.userData.horizontalAngle = horizontalAngle;
-              cluster.userData.verticalAngle = verticalAngle;
-              
-              // Standard spherical to Cartesian conversion for true 3D distribution
-              const offsetX = Math.sin(verticalAngle) * Math.cos(horizontalAngle) * orbitRadius;
-              const offsetY = Math.sin(verticalAngle) * Math.sin(horizontalAngle) * orbitRadius;
-              const offsetZ = Math.cos(verticalAngle) * orbitRadius;
-              
-              // Set position relative to parent wallet
+              // Update the center position to follow the parent node
               cluster.position.set(
-                parentSprite.position.x + offsetX,
-                parentSprite.position.y + offsetY,
-                parentSprite.position.z + offsetZ
+                parentPos.x,
+                parentPos.y,
+                parentPos.z
               );
+              
+              // No need to update individual wallet positions as they are fixed
+              // relative to the sphere center and rotate with the whole group
               
               // Add slight rotation to the entire cluster
               cluster.rotation.z += delta * 0.1;
