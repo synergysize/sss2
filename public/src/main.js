@@ -5,9 +5,10 @@ import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 import tooltipFix from './tooltipFix.js';
 import WalletTooltip from './walletTooltip.js';
+import directTooltipFix, { createTooltipIfMissing, showTooltip, hideTooltip, updateTooltipContent } from './directTooltipFix.js';
 
-// V27 - Fixed hover interactions, color coding, and wallet metadata display
-console.log("Starting 3D Blockchain Visualizer v27");
+// V28 - Fixed wallet metadata tooltip display
+console.log("Starting 3D Blockchain Visualizer v28");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -63,7 +64,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v27';
+versionDisplay.innerHTML = 'v28';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -90,56 +91,25 @@ const hoverBrightnessFactor = 1.3; // How much to brighten on hover
 // We'll get the tooltip element with a delay to ensure DOM is ready
 let tooltip = null;
 
-// Function to get tooltip element
+// Function to get tooltip element using our direct fix
 function getTooltipElement() {
-  tooltip = document.getElementById('wallet-tooltip');
-  console.log('Tooltip element found:', tooltip !== null);
+  // Use the direct tooltip fix to create or get the tooltip
+  tooltip = createTooltipIfMissing();
+  console.log('Tooltip element found/created:', tooltip !== null);
   
-  if (!tooltip) {
-    console.error('CRITICAL: wallet-tooltip element not found in the DOM!');
-    console.log('Creating tooltip element dynamically');
-    
-    // Create tooltip element if not found
-    tooltip = document.createElement('div');
-    tooltip.id = 'wallet-tooltip';
-    tooltip.style.position = 'absolute';
-    tooltip.style.display = 'none';
-    tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    tooltip.style.color = 'white';
-    tooltip.style.padding = '10px';
-    tooltip.style.borderRadius = '5px';
-    tooltip.style.fontSize = '12px';
-    tooltip.style.pointerEvents = 'none';
-    tooltip.style.zIndex = '1000';
-    tooltip.style.maxWidth = '250px';
-    tooltip.style.transition = 'opacity 0.3s';
-    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-    tooltip.style.boxShadow = '0 0 10px rgba(0, 100, 255, 0.5)';
-    
-    // Create tooltip content
-    tooltip.innerHTML = `
-      <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
-      <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">0x0000...0000</div>
-      <div class="tooltip-holdings" style="margin-bottom: 5px;">
-        <div class="tooltip-fartcoin" style="color: #88ff88;">Fartcoin: 0</div>
-        <div class="tooltip-goat" style="color: #8888ff;">Goat: 0</div>
-      </div>
-      <div class="tooltip-total" style="margin-top: 8px; font-weight: bold; color: #ffffff;">Total Value: 0</div>
-    `;
-    
-    // Add to document
-    document.body.appendChild(tooltip);
-    console.log('Created and added tooltip element to body');
-  }
-  
-  // Make sure tooltip is invisible initially
+  // Make sure tooltip is invisible initially but ready to be shown
   if (tooltip) {
     tooltip.style.display = 'none';
-    console.log('Set tooltip to hidden initially');
+    tooltip.style.zIndex = '10000'; // Ensure high z-index
+    tooltip.style.backgroundColor = 'rgba(0, 10, 30, 0.95)'; // Darker, more opaque background
+    tooltip.style.border = '2px solid rgba(100, 200, 255, 0.8)'; // Brighter border
+    tooltip.style.boxShadow = '0 0 15px rgba(0, 100, 255, 0.7)'; // Stronger glow effect
+    console.log('Set tooltip to hidden initially with improved visibility settings');
   }
 }
 
-// Get tooltip with a slight delay to ensure DOM is ready
+// Get tooltip immediately and also with a slight delay to ensure DOM is ready
+getTooltipElement();
 setTimeout(getTooltipElement, 500);
 
 // Track mouse position for raycasting
@@ -159,12 +129,18 @@ function onMouseMove(event) {
     // Position tooltip with offset from cursor
     tooltip.style.left = (event.clientX + 15) + 'px';
     tooltip.style.top = (event.clientY + 15) + 'px';
+    
+    // If tooltip is visible, make sure it stays visible
+    if (tooltip.style.display === 'block' && hoveredObject) {
+      // Re-apply wallet data if available
+      if (hoveredObject.userData && hoveredObject.userData.walletData) {
+        updateTooltipContent(tooltip, hoveredObject.userData.walletData);
+      }
+    }
   } else {
     // Try to get tooltip again if not found
-    if (Math.random() < 0.01) { // Limit retries to avoid excessive DOM queries
-      console.warn('Tooltip element not found in the DOM during mouse move, trying to get it again');
-      getTooltipElement();
-    }
+    console.warn('Tooltip element not found in the DOM during mouse move, recreating it');
+    tooltip = createTooltipIfMissing();
   }
 }
 
@@ -330,6 +306,13 @@ if (controlType === 'Fly') {
 // Initialize and prepare visualization data
 initializeData();
 generateAllPoints();
+
+// Make sure our tooltip fix is applied when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM fully loaded - ensuring tooltip is ready');
+  tooltip = createTooltipIfMissing();
+  console.log('Tooltip ready status:', tooltip !== null);
+});
 
 // Data verification - check that wallet data was loaded successfully
 if (sharedPoints.length === 0 || fartcoinPoints.length === 0 || goatTokenPoints.length === 0) {
@@ -621,9 +604,10 @@ window.addEventListener('resize', () => {
     
     hoveredObject = null;
     
-    // Hide tooltip
+    // Hide tooltip using our direct fix
     if (tooltip) {
-      tooltip.style.display = 'none';
+      hideTooltip(tooltip);
+      console.log('HTML tooltip hidden with direct fix');
     }
   }
   
@@ -1028,14 +1012,28 @@ function animate() {
           console.warn('Hovered object has no material');
         }
         
-        // Show the 3D tooltip instead of HTML tooltip
-        console.log('Showing 3D wallet tooltip');
+        // Show both the HTML tooltip and 3D tooltip for redundancy
+        console.log('Showing wallet tooltips (HTML and 3D)');
         const walletData = object.userData.walletData;
         
         // Log the data for debugging
         console.log(`Wallet Data: Address=${walletData.address}, Fart=${walletData.fartAmount}, Goat=${walletData.goatAmount}`);
         
-        // Show 3D tooltip with wallet data
+        // Show HTML tooltip with our direct fix
+        if (tooltip) {
+          // Get mouse position from event
+          const mouseX = event?.clientX || (mouse.x + 1) * window.innerWidth / 2;
+          const mouseY = event?.clientY || (1 - mouse.y) * window.innerHeight / 2;
+          
+          // Show the HTML tooltip
+          showTooltip(tooltip, mouseX, mouseY, walletData);
+          console.log('HTML tooltip shown with direct fix');
+        } else {
+          console.error('HTML tooltip element still missing, trying to recreate');
+          tooltip = createTooltipIfMissing();
+        }
+        
+        // Also show 3D tooltip with wallet data as backup
         walletTooltip.show(walletData, object.position.clone());
       }
     }
@@ -1062,9 +1060,15 @@ function animate() {
     hoveredObject = null;
     console.log('Cleared hovered object reference');
     
-    // Hide 3D tooltip
-    console.log('Hiding 3D tooltip');
+    // Hide both tooltips
+    console.log('Hiding both tooltips');
     walletTooltip.hide();
+    
+    // Also hide HTML tooltip with our direct fix
+    if (tooltip) {
+      hideTooltip(tooltip);
+      console.log('HTML tooltip hidden on hover end');
+    }
   }
   
   // Render the scene
