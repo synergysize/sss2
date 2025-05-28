@@ -4,7 +4,7 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V22 - Working version with 3D spherical wallet distribution
+// V22 - Implemented true 3D spherical wallet distribution
 console.log("Starting 3D Blockchain Visualizer v22");
 
 // Create a point texture for better visibility
@@ -347,8 +347,10 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
       level2Cluster.userData = { 
         parentIndex: index,
         orbitRadius: scale * 0.6, // Orbit radius based on parent scale
-        orbitSpeed: 0.2 + Math.random() * 0.3, // Random speed
-        orbitAngle: Math.random() * Math.PI * 2, // Random starting angle
+        orbitSpeed: 0.2 + Math.random() * 0.3, // Random speed for horizontal
+        verticalSpeed: 0.15 + Math.random() * 0.2, // Independent speed for vertical
+        horizontalAngle: Math.random() * Math.PI * 2, // Random starting horizontal angle
+        verticalAngle: Math.random() * Math.PI, // Random starting vertical angle (0 to π)
         parentSprite: sprite
       };
       
@@ -663,21 +665,31 @@ function animate() {
             const parentSprite = cluster.userData.parentSprite;
             
             if (parentSprite) {
-              // Update orbit angle
-              cluster.userData.orbitAngle += cluster.userData.orbitSpeed * delta;
+              // Orbit angle updates are now handled separately for horizontal and vertical
               
               // Calculate new position in orbit
               const orbitRadius = cluster.userData.orbitRadius;
-              const angle = cluster.userData.orbitAngle;
               
-              // Calculate 3D spherical orbit position
-              // Use two angles for full 3D orbit (horizontal and vertical)
-              const horizontalAngle = angle;
-              const verticalAngle = angle * 0.7; // Different speed for vertical orbit
+              // Calculate true 3D spherical orbit position with independent angles
+              // Update both angles independently for true spherical movement
+              let horizontalAngle = cluster.userData.horizontalAngle;
+              let verticalAngle = cluster.userData.verticalAngle;
               
-              // Convert from spherical to Cartesian coordinates
-              const offsetX = Math.cos(horizontalAngle) * Math.sin(verticalAngle) * orbitRadius;
-              const offsetY = Math.sin(horizontalAngle) * Math.sin(verticalAngle) * orbitRadius;
+              // Update angles with different speeds for more natural movement
+              horizontalAngle += delta * cluster.userData.orbitSpeed;
+              verticalAngle += delta * cluster.userData.verticalSpeed;
+              
+              // Keep the vertical angle within the range [0, π]
+              // This ensures we cover the whole sphere from pole to pole
+              verticalAngle = verticalAngle % Math.PI;
+              
+              // Store updated angles
+              cluster.userData.horizontalAngle = horizontalAngle;
+              cluster.userData.verticalAngle = verticalAngle;
+              
+              // Standard spherical to Cartesian conversion for true 3D distribution
+              const offsetX = Math.sin(verticalAngle) * Math.cos(horizontalAngle) * orbitRadius;
+              const offsetY = Math.sin(verticalAngle) * Math.sin(horizontalAngle) * orbitRadius;
               const offsetZ = Math.cos(verticalAngle) * orbitRadius;
               
               // Set position relative to parent wallet
