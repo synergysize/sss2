@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
+import tooltipFix from './tooltipFix.js';
 
 // V27 - Fixed hover interactions, color coding, and wallet metadata display
 console.log("Starting 3D Blockchain Visualizer v27");
@@ -85,17 +86,60 @@ let hoveredOriginalColor = null;
 const hoverScaleFactor = 1.5; // How much to scale up on hover
 const hoverBrightnessFactor = 1.3; // How much to brighten on hover
 
-// Get tooltip element and ensure it exists
-const tooltip = document.getElementById('wallet-tooltip');
-console.log('Tooltip element found:', tooltip !== null);
+// We'll get the tooltip element with a delay to ensure DOM is ready
+let tooltip = null;
 
-// Make sure tooltip is invisible initially
-if (tooltip) {
-  tooltip.style.display = 'none';
-  console.log('Set tooltip to hidden initially');
-} else {
-  console.error('CRITICAL: wallet-tooltip element not found in the DOM!');
+// Function to get tooltip element
+function getTooltipElement() {
+  tooltip = document.getElementById('wallet-tooltip');
+  console.log('Tooltip element found:', tooltip !== null);
+  
+  if (!tooltip) {
+    console.error('CRITICAL: wallet-tooltip element not found in the DOM!');
+    console.log('Creating tooltip element dynamically');
+    
+    // Create tooltip element if not found
+    tooltip = document.createElement('div');
+    tooltip.id = 'wallet-tooltip';
+    tooltip.style.position = 'absolute';
+    tooltip.style.display = 'none';
+    tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    tooltip.style.color = 'white';
+    tooltip.style.padding = '10px';
+    tooltip.style.borderRadius = '5px';
+    tooltip.style.fontSize = '12px';
+    tooltip.style.pointerEvents = 'none';
+    tooltip.style.zIndex = '1000';
+    tooltip.style.maxWidth = '250px';
+    tooltip.style.transition = 'opacity 0.3s';
+    tooltip.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+    tooltip.style.boxShadow = '0 0 10px rgba(0, 100, 255, 0.5)';
+    
+    // Create tooltip content
+    tooltip.innerHTML = `
+      <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
+      <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">0x0000...0000</div>
+      <div class="tooltip-holdings" style="margin-bottom: 5px;">
+        <div class="tooltip-fartcoin" style="color: #88ff88;">Fartcoin: 0</div>
+        <div class="tooltip-goat" style="color: #8888ff;">Goat: 0</div>
+      </div>
+      <div class="tooltip-total" style="margin-top: 8px; font-weight: bold; color: #ffffff;">Total Value: 0</div>
+    `;
+    
+    // Add to document
+    document.body.appendChild(tooltip);
+    console.log('Created and added tooltip element to body');
+  }
+  
+  // Make sure tooltip is invisible initially
+  if (tooltip) {
+    tooltip.style.display = 'none';
+    console.log('Set tooltip to hidden initially');
+  }
 }
+
+// Get tooltip with a slight delay to ensure DOM is ready
+setTimeout(getTooltipElement, 500);
 
 // Track mouse position for raycasting
 function onMouseMove(event) {
@@ -115,7 +159,11 @@ function onMouseMove(event) {
     tooltip.style.left = (event.clientX + 15) + 'px';
     tooltip.style.top = (event.clientY + 15) + 'px';
   } else {
-    console.warn('Tooltip element not found in the DOM');
+    // Try to get tooltip again if not found
+    if (Math.random() < 0.01) { // Limit retries to avoid excessive DOM queries
+      console.warn('Tooltip element not found in the DOM during mouse move, trying to get it again');
+      getTooltipElement();
+    }
   }
 }
 
@@ -950,6 +998,12 @@ function animate() {
         }
         
         // Show and update tooltip
+        // Get tooltip again if it's still null
+        if (!tooltip) {
+          console.log('Tooltip not available during hover - creating it now');
+          getTooltipElement();
+        }
+        
         if (tooltip) {
           console.log('Updating tooltip');
           const walletData = object.userData.walletData;
@@ -961,8 +1015,8 @@ function animate() {
             : address;
           console.log(`Formatted address: ${shortAddress}`);
           
-          // Update tooltip content
-          const addressElement = document.querySelector('.tooltip-address');
+          // Update tooltip content - search within the tooltip element to ensure we get the right elements
+          const addressElement = tooltip.querySelector('.tooltip-address');
           if (addressElement) {
             addressElement.textContent = shortAddress;
           } else {
@@ -984,10 +1038,10 @@ function animate() {
           
           console.log(`Holdings - Fartcoin: ${fartAmountFormatted}, Goat: ${goatAmountFormatted}, Total: ${totalAmountFormatted}`);
           
-          // Update specific holdings display
-          const fartcoinElement = document.querySelector('.tooltip-fartcoin');
-          const goatElement = document.querySelector('.tooltip-goat');
-          const totalElement = document.querySelector('.tooltip-total');
+          // Update specific holdings display - search within tooltip
+          const fartcoinElement = tooltip.querySelector('.tooltip-fartcoin');
+          const goatElement = tooltip.querySelector('.tooltip-goat');
+          const totalElement = tooltip.querySelector('.tooltip-total');
           
           if (fartcoinElement) {
             fartcoinElement.textContent = `Fartcoin: ${fartAmountFormatted}`;
@@ -1046,7 +1100,8 @@ function animate() {
       console.log('Hiding tooltip');
       tooltip.style.display = 'none';
     } else {
-      console.warn('Tooltip element not found when trying to hide it');
+      console.warn('Tooltip element not found when trying to hide it - creating it');
+      getTooltipElement(); // Create the tooltip element if it's missing
     }
   }
   
