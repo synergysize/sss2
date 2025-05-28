@@ -647,6 +647,24 @@ function animate() {
   
   const delta = clock.getDelta();
   
+  // Handle hover animation for better visibility
+  if (hoveredObject && hoveredObject.userData.pulseAnimation) {
+    hoveredObject.userData.pulseTime += delta;
+    const pulseScale = hoveredObject.userData.originalScale * (3 + Math.sin(hoveredObject.userData.pulseTime * 10) * 0.5);
+    hoveredObject.scale.set(pulseScale, pulseScale, 1);
+    
+    // Also pulse the brightness
+    if (hoveredObject.material) {
+      const color = new THREE.Color(hoveredObject.userData.originalColor);
+      const pulseIntensity = 1.3 + Math.sin(hoveredObject.userData.pulseTime * 10) * 0.3;
+      hoveredObject.material.color.setRGB(
+        Math.min(1, color.r * pulseIntensity),
+        Math.min(1, color.g * pulseIntensity),
+        Math.min(1, color.b * pulseIntensity)
+      );
+    }
+  }
+  
   // Update controls based on control type
   if (controlType === 'Fly') {
     // Custom physics for FlyControls on desktop
@@ -964,10 +982,14 @@ function animate() {
         hoveredObject = object;
         console.log('Set new hovered object');
         
-        // Scale up and brighten the hovered object
-        const newScale = object.userData.originalScale * hoverScaleFactor;
+        // Scale up and brighten the hovered object - make it MUCH larger for visibility
+        const newScale = object.userData.originalScale * 3; // Increased from 1.5 to 3 for better visibility
         console.log(`Scaling up to: ${newScale} (original: ${object.userData.originalScale})`);
         object.scale.set(newScale, newScale, 1);
+        
+        // Add pulsing animation for extra visibility
+        object.userData.pulseAnimation = true;
+        object.userData.pulseTime = 0;
         
         // Brighten the color
         if (object.material) {
@@ -1061,9 +1083,14 @@ function animate() {
             console.error('Could not find .tooltip-total element');
           }
           
-          // Show the tooltip
+          // Show the tooltip with enhanced styling
           console.log('Displaying tooltip');
           tooltip.style.display = 'block';
+          tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.9)'; // Make it more opaque
+          tooltip.style.padding = '15px'; // Larger padding
+          tooltip.style.borderRadius = '8px'; // Rounder corners
+          tooltip.style.border = '2px solid rgba(100, 200, 255, 0.8)'; // More visible border
+          tooltip.style.boxShadow = '0 0 20px rgba(100, 200, 255, 0.8)'; // Stronger glow
           
           // Debug: Check tooltip position
           console.log(`Tooltip position: left=${tooltip.style.left}, top=${tooltip.style.top}`);
