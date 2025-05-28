@@ -4,6 +4,7 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 import tooltipFix from './tooltipFix.js';
+import WalletTooltip from './walletTooltip.js';
 
 // V27 - Fixed hover interactions, color coding, and wallet metadata display
 console.log("Starting 3D Blockchain Visualizer v27");
@@ -216,6 +217,10 @@ function createStarfield() {
 
 // Add starfield to the scene
 const starfield = createStarfield();
+
+// Create 3D tooltip for wallet data
+const walletTooltip = new WalletTooltip(scene, camera);
+console.log('3D wallet tooltip initialized');
 
 // Initial camera setup - increased distance for better view of larger visualization
 camera.position.set(0, 0, 5000); // Increased from 3000 to 5000 to fit the larger visualization
@@ -647,6 +652,9 @@ function animate() {
   
   const delta = clock.getDelta();
   
+  // Update 3D tooltip position
+  walletTooltip.update();
+  
   // Handle hover animation for better visibility
   if (hoveredObject && hoveredObject.userData.pulseAnimation) {
     hoveredObject.userData.pulseTime += delta;
@@ -1019,84 +1027,15 @@ function animate() {
           console.warn('Hovered object has no material');
         }
         
-        // Show and update tooltip
-        // Get tooltip again if it's still null
-        if (!tooltip) {
-          console.log('Tooltip not available during hover - creating it now');
-          getTooltipElement();
-        }
+        // Show the 3D tooltip instead of HTML tooltip
+        console.log('Showing 3D wallet tooltip');
+        const walletData = object.userData.walletData;
         
-        if (tooltip) {
-          console.log('Updating tooltip');
-          const walletData = object.userData.walletData;
-          
-          // Format wallet address (first 8 + last 4 characters)
-          const address = walletData.address;
-          const shortAddress = address.length > 12 
-            ? `${address.substring(0, 8)}...${address.substring(address.length-4)}` 
-            : address;
-          console.log(`Formatted address: ${shortAddress}`);
-          
-          // Update tooltip content - search within the tooltip element to ensure we get the right elements
-          const addressElement = tooltip.querySelector('.tooltip-address');
-          if (addressElement) {
-            addressElement.textContent = shortAddress;
-          } else {
-            console.error('Could not find .tooltip-address element');
-          }
-          
-          // Format holdings
-          const fartAmountFormatted = walletData.fartAmount.toLocaleString(undefined, {
-            maximumFractionDigits: 2
-          });
-          
-          const goatAmountFormatted = walletData.goatAmount.toLocaleString(undefined, {
-            maximumFractionDigits: 2
-          });
-          
-          const totalAmountFormatted = walletData.totalHolding.toLocaleString(undefined, {
-            maximumFractionDigits: 2
-          });
-          
-          console.log(`Holdings - Fartcoin: ${fartAmountFormatted}, Goat: ${goatAmountFormatted}, Total: ${totalAmountFormatted}`);
-          
-          // Update specific holdings display - search within tooltip
-          const fartcoinElement = tooltip.querySelector('.tooltip-fartcoin');
-          const goatElement = tooltip.querySelector('.tooltip-goat');
-          const totalElement = tooltip.querySelector('.tooltip-total');
-          
-          if (fartcoinElement) {
-            fartcoinElement.textContent = `Fartcoin: ${fartAmountFormatted}`;
-          } else {
-            console.error('Could not find .tooltip-fartcoin element');
-          }
-          
-          if (goatElement) {
-            goatElement.textContent = `Goat: ${goatAmountFormatted}`;
-          } else {
-            console.error('Could not find .tooltip-goat element');
-          }
-          
-          if (totalElement) {
-            totalElement.textContent = `Total Value: ${totalAmountFormatted}`;
-          } else {
-            console.error('Could not find .tooltip-total element');
-          }
-          
-          // Show the tooltip with enhanced styling
-          console.log('Displaying tooltip');
-          tooltip.style.display = 'block';
-          tooltip.style.backgroundColor = 'rgba(0, 0, 0, 0.9)'; // Make it more opaque
-          tooltip.style.padding = '15px'; // Larger padding
-          tooltip.style.borderRadius = '8px'; // Rounder corners
-          tooltip.style.border = '2px solid rgba(100, 200, 255, 0.8)'; // More visible border
-          tooltip.style.boxShadow = '0 0 20px rgba(100, 200, 255, 0.8)'; // Stronger glow
-          
-          // Debug: Check tooltip position
-          console.log(`Tooltip position: left=${tooltip.style.left}, top=${tooltip.style.top}`);
-        } else {
-          console.error('Tooltip element not found while trying to show it');
-        }
+        // Log the data for debugging
+        console.log(`Wallet Data: Address=${walletData.address}, Fart=${walletData.fartAmount}, Goat=${walletData.goatAmount}`);
+        
+        // Show 3D tooltip with wallet data
+        walletTooltip.show(walletData, object.position.clone());
       }
     }
   } else if (hoveredObject) {
@@ -1122,14 +1061,9 @@ function animate() {
     hoveredObject = null;
     console.log('Cleared hovered object reference');
     
-    // Hide tooltip
-    if (tooltip) {
-      console.log('Hiding tooltip');
-      tooltip.style.display = 'none';
-    } else {
-      console.warn('Tooltip element not found when trying to hide it - creating it');
-      getTooltipElement(); // Create the tooltip element if it's missing
-    }
+    // Hide 3D tooltip
+    console.log('Hiding 3D tooltip');
+    walletTooltip.hide();
   }
   
   // Render the scene
