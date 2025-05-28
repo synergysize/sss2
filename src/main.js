@@ -4,8 +4,8 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V21 - Working version with 3D spherical wallet clusters
-console.log("Starting 3D Blockchain Visualizer v21");
+// V22 - Working version with 3D spherical wallet distribution
+console.log("Starting 3D Blockchain Visualizer v22");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -58,7 +58,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v21';
+versionDisplay.innerHTML = 'v22';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
