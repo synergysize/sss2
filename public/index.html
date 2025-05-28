@@ -3,65 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blockchain Visualizer</title>
+  <title>Blockchain Wallet Visualizer</title>
   <style>
     body {
       margin: 0;
       overflow: hidden;
       background-color: #000;
+      font-family: Arial, sans-serif;
     }
     canvas {
       display: block;
     }
-    /* Jetpack Fuel Meter Styles */
-    #fuel-meter-container {
-      position: absolute;
-      top: 15px;
-      right: 15px; /* Changed from left to right corner */
-      background-color: rgba(0, 0, 0, 0.6); /* Slightly more opaque */
-      border-radius: 5px;
-      padding: 10px;
-      display: block; /* Always visible by default */
-      z-index: 100;
-    }
-    #fuel-meter-label {
-      color: white;
-      font-size: 14px; /* Larger font */
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
-    #fuel-meter {
-      width: 180px; /* Wider meter */
-      height: 12px; /* Taller meter */
-      background-color: rgba(50, 50, 50, 0.7);
-      border-radius: 3px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.3); /* Add border */
-    }
-    #fuel-level {
-      height: 100%;
-      width: 100%;
-      background-color: #22cc22; /* Green */
-      transition: width 0.1s ease-out;
-      box-shadow: 0 0 5px rgba(34, 204, 34, 0.7); /* Add glow effect */
-    }
-    /* Version Counter Styles */
-    #version-counter {
+    #info {
       position: absolute;
       top: 10px;
-      right: 15px;
+      left: 10px;
       color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
       font-size: 14px;
-      opacity: 0.3;
-      font-family: monospace;
-      background-color: rgba(0, 0, 0, 0.2);
-      padding: 4px 8px;
-      border-radius: 4px;
-      z-index: 1000;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
     }
   </style>
 </head>
 <body>
+  <div id="info">
+    <h2>3D Blockchain Wallet Visualizer</h2>
+    <p>Interactive 3D visualization - Desktop & Mobile</p>
+  </div>
+  
+  <div id="controls">
+    <p>Left Click: Rotate | Right Click: Pan | Scroll: Zoom</p>
+  </div>
+  
   <script type="importmap">
     {
       "imports": {
@@ -71,25 +55,6 @@
       }
     }
   </script>
-  <script type="module" src="../src/main.js"></script>
-  
-  <!-- Jetpack Fuel Meter UI -->
-  <div id="fuel-meter-container">
-    <div id="fuel-meter-label">Jetpack Fuel</div>
-    <div id="fuel-meter">
-      <div id="fuel-level"></div>
-    </div>
-  </div>
-  
-  <!-- Controls guide -->
-  <div id="controls" style="position: absolute; bottom: 10px; right: 10px; color: white; background-color: rgba(0,0,0,0.6); padding: 10px; border-radius: 5px; font-size: 14px;">
-    <p>WASD to move | Mouse drag to look around<br>HOLD LEFT SHIFT to activate jetpack boost</p>
-  </div>
-  
-  <!-- Add console display for debugging -->
-  <div id="console" style="display:none; position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.7); color: white; padding: 10px; max-height: 200px; overflow: auto;"></div>
-  
-  <!-- Version counter for tracking commits -->
-  <div id="version-counter">v6</div>
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>

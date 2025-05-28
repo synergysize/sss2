@@ -69,12 +69,44 @@ Ezhr48hfsyUg9zoAq7CH5opi7NbSM34RjrVFf4n8cVpo,8539942.52
 DBmae92YTQKLsNzXcPscxiwPqMcz9stQr2prB5ZCAHPd,8189534.80
 HVh6wHNBAsG3pq1Bj5oCzRjoWKVogEDHwUHkRz3ekFgt,7987933.45`;
 
+// Function to load a CSV file using XMLHttpRequest (synchronously)
+const loadCSVFile = (filePath) => {
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', filePath, false); // false for synchronous
+    xhr.send();
+    
+    if (xhr.status === 200) {
+      return xhr.responseText;
+    } else {
+      console.error(`Failed to load ${filePath} - status: ${xhr.status}`);
+      return null;
+    }
+  } catch (error) {
+    console.error(`Error loading ${filePath}:`, error);
+    return null;
+  }
+};
+
 // Load and process the CSV data
 const loadWalletData = () => {
   try {
+    // Try to load the full CSV files from the public directory
+    let fartcoinCSV = loadCSVFile('./fartcoin.csv');
+    let goatTokenCSV = loadCSVFile('./goattoken.csv');
+    
+    // Fall back to embedded data if loading files failed
+    if (!fartcoinCSV || !goatTokenCSV) {
+      console.warn('Failed to load full CSV files. Using embedded sample data instead.');
+      fartcoinCSV = FARTCOIN_DATA;
+      goatTokenCSV = GOATTOKEN_DATA;
+    } else {
+      console.log('Successfully loaded full dataset from CSV files (1000+ wallets each)');
+    }
+    
     // Parse the CSV data
-    let fartcoinData = parseCSV(FARTCOIN_DATA);
-    let goatTokenData = parseCSV(GOATTOKEN_DATA);
+    let fartcoinData = parseCSV(fartcoinCSV);
+    let goatTokenData = parseCSV(goatTokenCSV);
     
     // Filter out any entries without an address or amount
     fartcoinData = fartcoinData.filter(entry => entry.address && !isNaN(entry.amount));

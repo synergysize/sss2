@@ -4,8 +4,8 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V23 - Implemented hollow spherical shells with nodes at center
-console.log("Starting 3D Blockchain Visualizer v23");
+// V24 - Scaled up to full 200 wallet points per node
+console.log("Starting 3D Blockchain Visualizer v24");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -34,12 +34,15 @@ const pointTexture = createPointTexture();
 
 // Initialize the scene, camera, and renderer
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 20000);
+// Increase far clipping plane to accommodate the larger visualization
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 50000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 
 // CRITICAL: Set renderer size before anything else
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(window.devicePixelRatio);
+// Limit pixel ratio for better performance with 200 points per node
+const limitedPixelRatio = Math.min(window.devicePixelRatio, 1.5);
+renderer.setPixelRatio(limitedPixelRatio);
 document.body.appendChild(renderer.domElement);
 
 // Set background color to deep space blue
@@ -58,7 +61,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v23';
+versionDisplay.innerHTML = 'v24';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -117,8 +120,8 @@ function createStarfield() {
 // Add starfield to the scene
 const starfield = createStarfield();
 
-// Initial camera setup - safe starting position
-camera.position.set(0, 0, 3000);
+// Initial camera setup - increased distance for better view of larger visualization
+camera.position.set(0, 0, 5000); // Increased from 3000 to 5000 to fit the larger visualization
 camera.lookAt(0, 0, 0);
 
 // Detect if device is touch-based (mobile/tablet)
@@ -157,8 +160,8 @@ try {
     controls.dampingFactor = 0.1;
     controls.rotateSpeed = 0.5;
     controls.screenSpacePanning = false;
-    controls.minDistance = 500;
-    controls.maxDistance = 30000;
+    controls.minDistance = 1000; // Increased from 500 to 1000 for better viewing with more points
+    controls.maxDistance = 50000; // Increased from 30000 to 50000 to match camera far clip plane
     controlType = 'Orbit';
     
     if (consoleElement) {
@@ -250,39 +253,37 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor) {
   centralNode.position.set(0, 0, 0); // Center point of the sphere
   sphericalShellGroup.add(centralNode);
   
-  // Define the number of wallet points to distribute on the sphere
-  const numPoints = 12; // Increased from 10 for better distribution
+  // Define the number of wallet points to distribute on the sphere - increased to 200 per spec
+  const numPoints = 200; // Increased from ~10-12 to 200 for full dataset visualization
   
-  // Fixed radius for the hollow sphere - significantly larger than before for clear separation
-  const shellRadius = parentScale * 2.0; // Fixed distance from center to all points on sphere
+  // Increase radius for the hollow sphere to accommodate more points without visual crowding
+  const shellRadius = parentScale * 3.0; // Increased from 2.0 to 3.0 to spread out the 200 points
   
-  // Create evenly distributed points on the sphere surface using Fibonacci spiral
+  // Create evenly distributed points on the sphere surface using Fibonacci sphere distribution
+  // This algorithm produces a more uniform distribution for larger point counts
   for (let i = 0; i < numPoints; i++) {
-    // Use Fibonacci sphere distribution for perfect even spacing across the sphere surface
-    const goldenRatio = (1 + Math.sqrt(5)) / 2;
-    const y = 1 - (i / (numPoints - 1)) * 2; // y goes from 1 to -1
-    const radius = Math.sqrt(1 - y * y);     // Radius at y
+    // Use Fibonacci sphere distribution for perfectly even spacing across the sphere surface
+    // This works better than previous approach for 200 points
+    const phi = Math.acos(1 - 2 * (i + 0.5) / numPoints);
+    const theta = Math.PI * 2 * i * (1 + Math.sqrt(5)); // Golden ratio-based angle
     
-    // Golden angle increment
-    const theta = 2 * Math.PI * i / goldenRatio;
+    // Convert spherical coordinates to Cartesian coordinates
+    const x = shellRadius * Math.sin(phi) * Math.cos(theta);
+    const z = shellRadius * Math.sin(phi) * Math.sin(theta);
+    const yPos = shellRadius * Math.cos(phi);
     
-    // Convert to Cartesian coordinates (fixed radius for hollow sphere)
-    const x = radius * Math.cos(theta) * shellRadius;
-    const z = radius * Math.sin(theta) * shellRadius;
-    const yPos = y * shellRadius;
-    
-    // Create wallet node material
+    // Create wallet node material with adjusted opacity for larger point count
     const walletNodeMaterial = new THREE.SpriteMaterial({
       map: pointTexture,
       color: new THREE.Color(parentColor).lerp(new THREE.Color(0xffffff), 0.3), // Slightly lighter version
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.7, // Reduced from 0.8 to prevent visual crowding with 200 points
       blending: THREE.AdditiveBlending
     });
     
     // Create the wallet sprite
     const walletNode = new THREE.Sprite(walletNodeMaterial);
-    const walletScale = parentScale * 0.3; // Larger than before for better visibility
+    const walletScale = parentScale * 0.2; // Reduced from 0.3 to maintain visual hierarchy with 200 points
     walletNode.scale.set(walletScale, walletScale, 1);
     walletNode.position.set(x, yPos, z);
     
@@ -349,19 +350,19 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
     group.add(sprite);
     
     // Add Level 2 clusters for each Level 1 wallet
-    // Cap Level 2 clusters to avoid performance issues (add for first 200 wallets)
-    if (index < 200) {
-      const level2Cluster = createLevel2Cluster(
-        sprite.position.clone(),
-        scale,
-        point.color || color
-      );
+    // Now supporting all parent nodes to handle the full dataset
+    // For Fartcoin and Goat, we need to handle 1000+ points each, plus 76 shared
+    const level2Cluster = createLevel2Cluster(
+      sprite.position.clone(),
+      scale,
+      point.color || color
+    );
       
       // Store reference to parent for orbit animation
       level2Cluster.userData = { 
         parentIndex: index,
-        shellRadius: scale * 2.0, // Fixed radius for hollow sphere
-        rotationSpeed: 0.1 + Math.random() * 0.15, // Overall rotation speed of sphere
+        shellRadius: scale * 3.0, // Increased from 2.0 to 3.0 to match the new shell radius
+        rotationSpeed: 0.05 + Math.random() * 0.10, // Reduced from 0.1-0.25 to 0.05-0.15 for smoother animation with 200 points
         parentSprite: sprite,
         rotationAxis: new THREE.Vector3(
           Math.random() - 0.5, 
@@ -371,7 +372,6 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
       };
       
       level2Group.add(level2Cluster);
-    }
   });
   
   // Add the main group to the scene
@@ -438,8 +438,8 @@ if (sharedPoints.length > 0 && fartcoinPoints.length > 0 && goatTokenPoints.leng
     Math.max(1, boxSize.z)
   );
   
-  // Calculate camera distance
-  const cameraDistance = Math.max(3000, maxDim * 2.5);
+  // Calculate camera distance - increased to accommodate 200 points per node
+  const cameraDistance = Math.max(5000, maxDim * 3.0);
   
   // Position the camera to fit the bounding box
   camera.position.set(
