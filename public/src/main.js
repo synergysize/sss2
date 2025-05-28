@@ -4,8 +4,8 @@ import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
 import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
 
-// V24 - Fixed build configuration and file path issues
-console.log("Starting 3D Blockchain Visualizer v24");
+// V25 - Optimized sphere spacing to prevent overlapping hollow spheres
+console.log("Starting 3D Blockchain Visualizer v25");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -61,7 +61,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v24';
+versionDisplay.innerHTML = 'v25';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -256,8 +256,10 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor) {
   // Define the number of wallet points to distribute on the sphere - increased to 200 per spec
   const numPoints = 200; // Increased from ~10-12 to 200 for full dataset visualization
   
-  // Increase radius for the hollow sphere to accommodate more points without visual crowding
-  const shellRadius = parentScale * 3.0; // Increased from 2.0 to 3.0 to spread out the 200 points
+  // Optimize hollow sphere size to prevent overlap between adjacent spheres
+  const shellRadius = parentScale * 2.8; // Reduced from 3.0 to 2.8 to prevent sphere overlap
+  // We're reducing the shell radius slightly while increasing parent node spacing,
+  // which will result in distinct separation between the hollow spheres
   
   // Create evenly distributed points on the sphere surface using Fibonacci sphere distribution
   // This algorithm produces a more uniform distribution for larger point counts
@@ -283,7 +285,7 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor) {
     
     // Create the wallet sprite
     const walletNode = new THREE.Sprite(walletNodeMaterial);
-    const walletScale = parentScale * 0.2; // Reduced from 0.3 to maintain visual hierarchy with 200 points
+    const walletScale = parentScale * 0.18; // Further reduced from 0.2 to 0.18 for better differentiation between spheres
     walletNode.scale.set(walletScale, walletScale, 1);
     walletNode.position.set(x, yPos, z);
     
@@ -361,7 +363,7 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
       // Store reference to parent for orbit animation
       level2Cluster.userData = { 
         parentIndex: index,
-        shellRadius: scale * 3.0, // Increased from 2.0 to 3.0 to match the new shell radius
+        shellRadius: scale * 2.8, // Adjusted from 3.0 to 2.8 to prevent hollow sphere overlap
         rotationSpeed: 0.05 + Math.random() * 0.10, // Reduced from 0.1-0.25 to 0.05-0.15 for smoother animation with 200 points
         parentSprite: sprite,
         rotationAxis: new THREE.Vector3(

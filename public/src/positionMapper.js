@@ -13,8 +13,9 @@
 import { fartcoinHolders, goatTokenHolders, sharedHolders, initializeData } from './dataLoader.js';
 
 // Constants for the 3D positioning
-const baseRadius = 1000;
+const baseRadius = 1250; // Increased from 1000 to 1250 (25% increase) for better sphere separation
 const goldenAngle = 137.5 * (Math.PI / 180);
+const spacingFactor = 1.25; // 25% increased spacing between nodes
 
 // Helper function to generate random values in a range
 const randomBetween = (min, max) => {
@@ -34,20 +35,22 @@ const mapSharedWallets = () => {
     const totalHolding = wallet.fartAmount + wallet.goatAmount;
     const normalizedIndex = i / sharedHolders.length;
     
-    // Limit radius to within 800 for shared wallets and cluster more tightly
-    const r = Math.min(800, baseRadius * Math.log(normalizedIndex + 1.5) / 3);
+    // Limit radius to within 1000 for shared wallets and cluster more tightly
+    // Increased from 800 to 1000 for better sphere separation
+    const r = Math.min(1000, baseRadius * Math.log(normalizedIndex + 1.5) / 3);
     const theta = i * goldenAngle;
     const phi = i * 0.5;
     
-    // Calculate base positions using spherical coordinates
-    let x = r * Math.cos(theta) * Math.sin(phi);
-    let y = r * Math.sin(theta) * Math.sin(phi);
-    let z = r * Math.cos(phi);
+    // Calculate base positions using spherical coordinates with increased spacing
+    let x = r * spacingFactor * Math.cos(theta) * Math.sin(phi);
+    let y = r * spacingFactor * Math.sin(theta) * Math.sin(phi);
+    let z = r * spacingFactor * Math.cos(phi);
     
     // Add small noise for more natural appearance
-    x += randomBetween(-baseRadius/15, baseRadius/15);
-    y += randomBetween(-baseRadius/15, baseRadius/15);
-    z += randomBetween(-baseRadius/15, baseRadius/15);
+    // Scale noise proportionally to maintain visual consistency
+    x += randomBetween(-baseRadius/18, baseRadius/18); // Reduced from /15 to /18 to keep noise proportional
+    y += randomBetween(-baseRadius/18, baseRadius/18);
+    z += randomBetween(-baseRadius/18, baseRadius/18);
     
     // Add brightness based on holdings
     const brightness = Math.min(255, Math.floor(200 + totalHolding / 1000000));
@@ -72,26 +75,26 @@ const mapFartcoinWallets = () => {
   }
   
   return fartcoinHolders.map((wallet, i) => {
-    // Use logarithmic scaling for more interesting distribution
+    // Use logarithmic scaling for more interesting distribution with increased spacing
     const r = baseRadius * Math.log(i + 2);
     const theta = i * goldenAngle;
     const phi = i * 0.5;
     
-    // Base position calculation - shifted toward +X axis
-    let x = r * Math.cos(theta) + baseRadius;
-    let y = r * Math.sin(theta);
-    let z = r * Math.sin(phi);
+    // Base position calculation - shifted toward +X axis with increased spacing
+    let x = r * spacingFactor * Math.cos(theta) + baseRadius;
+    let y = r * spacingFactor * Math.sin(theta);
+    let z = r * spacingFactor * Math.sin(phi);
     
-    // Add fractal sub-clusters by using modulo operations
+    // Add fractal sub-clusters by using modulo operations - increase spacing
     if (i % 5 === 0) {
-      x += 200 * Math.sin(i);
-      y += 200 * Math.cos(i);
+      x += 250 * Math.sin(i); // Increased from 200 to 250
+      y += 250 * Math.cos(i); // Increased from 200 to 250
     }
     
-    // Add small noise
-    x += randomBetween(-baseRadius/10, baseRadius/10);
-    y += randomBetween(-baseRadius/10, baseRadius/10);
-    z += randomBetween(-baseRadius/10, baseRadius/10);
+    // Add small noise - adjusted for increased spacing
+    x += randomBetween(-baseRadius/12, baseRadius/12); // Reduced from /10 to /12 for proportional noise
+    y += randomBetween(-baseRadius/12, baseRadius/12);
+    z += randomBetween(-baseRadius/12, baseRadius/12);
     
     // Generate green-tinted color based on holdings
     const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
@@ -115,26 +118,26 @@ const mapGoatTokenWallets = () => {
   }
   
   return goatTokenHolders.map((wallet, i) => {
-    // Use logarithmic scaling for more interesting distribution
+    // Use logarithmic scaling for more interesting distribution with increased spacing
     const r = baseRadius * Math.log(i + 2);
     const theta = i * goldenAngle;
     const phi = i * 0.5;
     
-    // Base position calculation - shifted toward -X axis (mirrored from Fartcoin)
-    let x = -(r * Math.cos(theta)) - baseRadius;
-    let y = r * Math.sin(theta);
-    let z = r * Math.sin(phi);
+    // Base position calculation - shifted toward -X axis (mirrored from Fartcoin) with increased spacing
+    let x = -(r * spacingFactor * Math.cos(theta)) - baseRadius;
+    let y = r * spacingFactor * Math.sin(theta);
+    let z = r * spacingFactor * Math.sin(phi);
     
-    // Add fractal sub-clusters by using modulo operations
+    // Add fractal sub-clusters by using modulo operations - increase spacing
     if (i % 5 === 0) {
-      x -= 200 * Math.sin(i);
-      y += 200 * Math.cos(i);
+      x -= 250 * Math.sin(i); // Increased from 200 to 250
+      y += 250 * Math.cos(i); // Increased from 200 to 250
     }
     
-    // Add small noise
-    x += randomBetween(-baseRadius/10, baseRadius/10);
-    y += randomBetween(-baseRadius/10, baseRadius/10);
-    z += randomBetween(-baseRadius/10, baseRadius/10);
+    // Add small noise - adjusted for increased spacing
+    x += randomBetween(-baseRadius/12, baseRadius/12); // Reduced from /10 to /12 for proportional noise
+    y += randomBetween(-baseRadius/12, baseRadius/12);
+    z += randomBetween(-baseRadius/12, baseRadius/12);
     
     // Generate blue-tinted color based on holdings
     const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
