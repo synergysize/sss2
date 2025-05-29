@@ -56,7 +56,7 @@ export function updateTooltipContent(tooltip, walletData) {
     holdingsType = 'No tokens found';
   }
   
-  // Update tooltip content
+  // Update tooltip content - without Total Value line
   tooltip.innerHTML = `
     <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
     <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">${shortAddress}</div>
@@ -65,7 +65,6 @@ export function updateTooltipContent(tooltip, walletData) {
       <div class="tooltip-fartcoin" style="color: #88ff88;">Fartcoin: ${fartAmountFormatted}</div>
       <div class="tooltip-goat" style="color: #8888ff;">Goatcoin: ${goatAmountFormatted}</div>
     </div>
-    <div class="tooltip-total" style="margin-top: 8px; font-weight: bold; color: #ffffff;">Total Value: ${totalAmountFormatted}</div>
   `;
   
   console.log('Updated tooltip with wallet data:', shortAddress);
@@ -128,7 +127,7 @@ export function createTooltipIfMissing() {
     tooltip.style.border = '2px solid rgba(100, 200, 255, 0.8)';
     tooltip.style.boxShadow = '0 0 15px rgba(0, 100, 255, 0.7)';
     
-    // Create tooltip content
+    // Create tooltip content - without Total Value line
     tooltip.innerHTML = `
       <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
       <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">0x0000...0000</div>
@@ -137,7 +136,6 @@ export function createTooltipIfMissing() {
         <div class="tooltip-fartcoin" style="color: #88ff88;">Fartcoin: 0</div>
         <div class="tooltip-goat" style="color: #8888ff;">Goatcoin: 0</div>
       </div>
-      <div class="tooltip-total" style="margin-top: 8px; font-weight: bold; color: #ffffff;">Total Value: 0</div>
     `;
     
     // Add to document body

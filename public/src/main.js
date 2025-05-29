@@ -7,8 +7,8 @@ import tooltipFix from './tooltipFix.js';
 import WalletTooltip from './walletTooltip.js';
 import directTooltipFix, { createTooltipIfMissing, showTooltip, hideTooltip, updateTooltipContent } from './directTooltipFix.js';
 
-// V28 - Fixed wallet metadata tooltip display
-console.log("Starting 3D Blockchain Visualizer v28");
+// V29 - Fixed hover targets and distance detection
+console.log("Starting 3D Blockchain Visualizer v29");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -64,7 +64,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v28';
+versionDisplay.innerHTML = 'v29';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -320,7 +320,7 @@ if (sharedPoints.length === 0 || fartcoinPoints.length === 0 || goatTokenPoints.
 }
 
 // Function to create a Level 2 cluster forming a hollow sphere around a Level 1 wallet
-function createLevel2Cluster(parentPosition, parentScale, parentColor) {
+function createLevel2Cluster(parentPosition, parentScale, parentColor, parentWalletData) {
   // Create a group to hold the hollow spherical shell
   const sphericalShellGroup = new THREE.Group();
   
@@ -336,6 +336,13 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor) {
   const centralNode = new THREE.Sprite(centralNodeMaterial);
   centralNode.scale.set(parentScale * 0.5, parentScale * 0.5, 1); // Make center node visible
   centralNode.position.set(0, 0, 0); // Center point of the sphere
+  
+  // Set userdata including the fact this is a parent node (Level 1 Wallet)
+  centralNode.userData = { 
+    isLevel1Wallet: true,
+    walletData: parentWalletData
+  };
+  
   sphericalShellGroup.add(centralNode);
   
   // Define the number of wallet points to distribute on the sphere - increased to 200 per spec
@@ -377,12 +384,14 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor) {
     // Add to shell group
     sphericalShellGroup.add(walletNode);
     
-    // Store original position and parent's wallet data
+    // Store original position, wallet data, and set isLevel1Wallet=false to mark this as a child node
     walletNode.userData = {
       originalPosition: new THREE.Vector3(x, yPos, z),
       shellRadius: shellRadius,
       originalScale: walletScale,
-      originalColor: walletNodeMaterial.color.getStyle()
+      originalColor: walletNodeMaterial.color.getStyle(),
+      isLevel1Wallet: false, // Explicitly mark as NOT a Level 1 wallet
+      walletData: parentWalletData // Copy wallet data from parent
     };
   }
   
@@ -458,7 +467,12 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
     const level2Cluster = createLevel2Cluster(
       sprite.position.clone(),
       scale,
-      point.color || color
+      point.color || color,
+      point.walletData || {  // Pass the wallet data to be shared with child nodes
+        address: point.address,
+        fartAmount: point.fartAmount || 0,
+        goatAmount: point.goatAmount || 0
+      }
     );
       
       // Store reference to parent for orbit animation
@@ -915,25 +929,42 @@ function animate() {
   if (goatTokenGroup) pointGroups.push(goatTokenGroup);
   
   // Get wallet points to test against
-  let walletPoints = [];
+  let allWalletPoints = [];
   pointGroups.forEach(group => {
     if (group && group.children) {
-      walletPoints = walletPoints.concat(group.children);
+      allWalletPoints = allWalletPoints.concat(group.children);
     }
+  });
+  
+  // Filter out Level 1 wallet nodes, we only want the small wallet points in the spherical shells
+  let filteredWalletPoints = allWalletPoints.filter(point => {
+    return !point.userData?.isLevel1Wallet;
   });
   
   // Debug: Log wallet points count
   if (frameCounter % 120 === 0) {
-    console.log(`Raycast targets: ${walletPoints.length} wallet points`);
+    console.log(`Raycast targets: ${filteredWalletPoints.length} filtered wallet points (from ${allWalletPoints.length} total)`);
   }
   
-  // Perform raycast
-  const intersects = raycaster.intersectObjects(walletPoints, false);
+  // Get camera distance to scene center for distance check
+  const cameraDistanceToCenter = camera.position.length();
+  const maxInteractionDistance = 10000; // Maximum distance for interaction
   
-  // Debug: Log intersections
-  if (intersects.length > 0 && frameCounter % 10 === 0) {
-    console.log(`Found ${intersects.length} intersections with wallet points`);
-    console.log(`First intersection: distance=${intersects[0].distance.toFixed(2)}, object=${intersects[0].object.userData?.isLevel1Wallet ? 'Level 1 Wallet' : 'Other'}`);
+  // Perform raycast only if camera is within reasonable distance
+  let intersects = [];
+  if (cameraDistanceToCenter <= maxInteractionDistance) {
+    intersects = raycaster.intersectObjects(filteredWalletPoints, false);
+  }
+  
+  // Debug: Log intersections and distance
+  if (frameCounter % 60 === 0) {
+    console.log(`Camera distance to center: ${cameraDistanceToCenter.toFixed(2)}, max interaction: ${maxInteractionDistance}`);
+    console.log(`Hover enabled: ${cameraDistanceToCenter <= maxInteractionDistance}`);
+    
+    if (intersects.length > 0) {
+      console.log(`Found ${intersects.length} intersections with wallet points`);
+      console.log(`First intersection: distance=${intersects[0].distance.toFixed(2)}, type=${intersects[0].object.userData?.isLevel1Wallet ? 'Level 1 Wallet' : 'Small Wallet Point'}`);
+    }
   }
   
   // Handle tooltip and hover effects
