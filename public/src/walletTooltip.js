@@ -50,22 +50,25 @@ class WalletTooltip {
     context.fill();
     context.stroke();
     
-    // Add title text
-    context.fillStyle = '#88ccff';
-    context.font = 'bold 24px Arial';
-    context.fillText('Wallet Details', 30, 40);
+    // Add placeholder text - starting Y position higher as header is removed
+    let yPosition = 50;
     
-    // Add placeholder text
     context.fillStyle = '#ffffff';
     context.font = '16px Monospace';
-    context.fillText('Address: 0x000...000', 30, 80);
+    context.fillText('Address: 0x000...000', 30, yPosition);
+    yPosition += 30;
+    
     context.fillStyle = '#88ff88';
-    context.fillText('Fartcoin: 0', 30, 110);
+    context.fillText('Fartcoin: 0', 30, yPosition);
+    yPosition += 30;
+    
     context.fillStyle = '#8888ff';
-    context.fillText('Goat: 0', 30, 140);
+    context.fillText('Goat: 0', 30, yPosition);
+    yPosition += 40;
+    
     context.fillStyle = '#ffffff';
     context.font = 'bold 16px Arial';
-    context.fillText('Total Value: 0', 30, 180);
+    context.fillText('Total Value: 0', 30, yPosition);
     
     // Create texture
     const texture = new THREE.CanvasTexture(canvas);
@@ -95,11 +98,6 @@ class WalletTooltip {
     context.fill();
     context.stroke();
     
-    // Add title text
-    context.fillStyle = '#88ccff';
-    context.font = 'bold 24px Arial';
-    context.fillText('Wallet Details', 30, 40);
-    
     // Format address
     const address = walletData.address;
     const shortAddress = address.length > 12 
@@ -119,17 +117,27 @@ class WalletTooltip {
       maximumFractionDigits: 2
     });
     
-    // Add wallet data
+    // Add wallet data - start Y position higher since we removed the header
+    let yPosition = 50;
+    
+    // Address line with wallet address
     context.fillStyle = '#aaccff';
     context.font = '16px Monospace';
-    context.fillText(`Address: ${shortAddress}`, 30, 80);
+    context.fillText(`Address: ${shortAddress}`, 30, yPosition);
+    yPosition += 30;
+    
+    // Token data
     context.fillStyle = '#88ff88';
-    context.fillText(`Fartcoin: ${fartAmountFormatted}`, 30, 110);
+    context.fillText(`Fartcoin: ${fartAmountFormatted}`, 30, yPosition);
+    yPosition += 30;
+    
     context.fillStyle = '#8888ff';
-    context.fillText(`Goat: ${goatAmountFormatted}`, 30, 140);
+    context.fillText(`Goat: ${goatAmountFormatted}`, 30, yPosition);
+    yPosition += 40;
+    
     context.fillStyle = '#ffffff';
     context.font = 'bold 16px Arial';
-    context.fillText(`Total Value: ${totalAmountFormatted}`, 30, 180);
+    context.fillText(`Total Value: ${totalAmountFormatted}`, 30, yPosition);
     
     // Update texture
     this.tooltipMaterial.map.needsUpdate = true;
