@@ -184,6 +184,12 @@ export let goatTokenPoints = [];
 // Function to populate the arrays when data is ready
 export function generateAllPoints() {
   console.log('Generating all points now that data is loaded');
+  
+  // Cap wallets per group as specified
+  fartcoinHolders = fartcoinHolders.slice(0, 500);
+  goatTokenHolders = goatTokenHolders.slice(0, 500);
+  sharedHolders = sharedHolders.slice(0, 100);
+  
   sharedPoints = generateSharedPoints();
   fartcoinPoints = generateFartcoinPoints();
   goatTokenPoints = generateGoatTokenPoints();

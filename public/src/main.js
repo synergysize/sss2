@@ -743,7 +743,7 @@ try {
   } else {
     // Use FlyControls for desktop
     controls = new FlyControls(camera, renderer.domElement);
-    controls.movementSpeed = 400;  // Increased movement speed from 200 to 400
+    controls.movementSpeed = 500;  // Increased movement speed from 400 to 500 (25% boost)
     controls.rollSpeed = Math.PI / 6;  // Set roll speed as specified
     controls.dragToLook = true;  // Mouse drag to look around
     controls.autoForward = false;  // Don't move forward automatically
@@ -829,6 +829,10 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor, parentWal
   });
   
   const centralNode = new THREE.Sprite(centralNodeMaterial);
+  
+  // Enable frustum culling for better performance
+  centralNode.frustumCulled = true;
+  
   centralNode.scale.set(parentScale * 0.5, parentScale * 0.5, 1); // Make center node visible
   centralNode.position.set(0, 0, 0); // Center point of the sphere
   
@@ -840,8 +844,8 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor, parentWal
   
   sphericalShellGroup.add(centralNode);
   
-  // Define the number of wallet points to distribute on the sphere - increased to 200 per spec
-  const numPoints = 200; // Increased from ~10-12 to 200 for full dataset visualization
+  // Define the number of wallet points to distribute on the sphere - reduced to 10 for performance
+  const numPoints = 10; // Reduced from 200 to 10 for better performance
   
   // Optimize hollow sphere size to prevent overlap between adjacent spheres
   const shellRadius = parentScale * 2.8; // Reduced from 3.0 to 2.8 to prevent sphere overlap
@@ -872,6 +876,10 @@ function createLevel2Cluster(parentPosition, parentScale, parentColor, parentWal
     
     // Create the wallet sprite
     const walletNode = new THREE.Sprite(walletNodeMaterial);
+    
+    // Enable frustum culling for better performance
+    walletNode.frustumCulled = true;
+    
     const walletScale = parentScale * 0.18; // Further reduced from 0.2 to 0.18 for better differentiation between spheres
     walletNode.scale.set(walletScale, walletScale, 1);
     walletNode.position.set(x, yPos, z);
@@ -929,6 +937,9 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
     });
     
     const sprite = new THREE.Sprite(material);
+    
+    // Enable frustum culling for better performance
+    sprite.frustumCulled = true;
     
     // Position the sprite
     sprite.position.set(point.x, point.y, point.z);
@@ -1332,8 +1343,8 @@ function animate() {
     starfield.rotation.x += delta * 0.005;
   }
   
-  // Update Level 2 cluster orbits
-  if (typeof level2Groups !== 'undefined') {
+  // Update Level 2 cluster orbits - skip on mobile devices
+  if (typeof level2Groups !== 'undefined' && !isTouchDevice) {
     level2Groups.forEach(group => {
       if (group && group.children) {
         group.children.forEach(cluster => {
@@ -1355,8 +1366,10 @@ function animate() {
               const rotationSpeed = cluster.userData.rotationSpeed;
               const rotationAxis = cluster.userData.rotationAxis;
               
-              // Apply incremental rotation to the entire group
-              cluster.rotateOnAxis(rotationAxis, delta * rotationSpeed);
+              // Apply incremental rotation to the entire group, throttled for better performance
+              if (frameCounter % 3 === 0) {
+                cluster.rotateOnAxis(rotationAxis, delta * rotationSpeed);
+              }
               
               // Update the center position to follow the parent node
               cluster.position.set(
