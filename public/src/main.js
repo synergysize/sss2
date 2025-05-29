@@ -7,8 +7,8 @@ import tooltipFix from './tooltipFix.js';
 import WalletTooltip from './walletTooltip.js';
 import directTooltipFix, { createTooltipIfMissing, showTooltip, hideTooltip, updateTooltipContent } from './directTooltipFix.js';
 
-// V29 - Fixed hover targets and distance detection
-console.log("Starting 3D Blockchain Visualizer v29");
+// V30 - Debug hover functionality and removed distance restrictions
+console.log("Starting 3D Blockchain Visualizer v30");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -64,7 +64,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v29';
+versionDisplay.innerHTML = 'v30';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -76,11 +76,12 @@ scene.add(directionalLight);
 // Define boxCenter at global scope with a default value
 let boxCenter = new THREE.Vector3(0, 0, 0);
 
-// Setup raycaster for hover interactions with adjusted parameters for better detection
+// Setup raycaster for hover interactions with massively boosted threshold
 const raycaster = new THREE.Raycaster();
-// Dramatically increase the precision for sprites to ensure we can hit them
-raycaster.params.Sprite = { threshold: 50 }; // Increase from 15 to 50 for much easier hover detection
-console.log('Raycaster initialized with very high sprite threshold:', raycaster.params.Sprite.threshold);
+// DEBUG v30: Even more dramatically increase the precision for sprites to ensure we can hit them
+raycaster.params.Sprite = { threshold: 200 }; // Increased from 50 to 200 for extremely forgiving hover detection
+raycaster.params.Points = { threshold: 20 }; // Increase Points threshold too just in case
+console.log('DEBUG v30: Raycaster initialized with extremely high sprite threshold:', raycaster.params.Sprite.threshold);
 const mouse = new THREE.Vector2();
 let hoveredObject = null;
 let hoveredOriginalScale = null;
@@ -936,34 +937,53 @@ function animate() {
     }
   });
   
-  // Filter out Level 1 wallet nodes, we only want the small wallet points in the spherical shells
-  let filteredWalletPoints = allWalletPoints.filter(point => {
-    return !point.userData?.isLevel1Wallet;
-  });
+  // DEBUG v30: Include ALL wallet points in hover detection, regardless of type
+  // Previously we were filtering out Level 1 wallet nodes, but that might be part of the hover issue
+  let filteredWalletPoints = allWalletPoints;
   
-  // Debug: Log wallet points count
+  // Keep track of how many points would have been filtered out for debugging
+  let levelOneWallets = allWalletPoints.filter(point => point.userData?.isLevel1Wallet);
+  let smallWalletPoints = allWalletPoints.filter(point => !point.userData?.isLevel1Wallet);
+
+  // Debug: Log wallet points count with more details
   if (frameCounter % 120 === 0) {
-    console.log(`Raycast targets: ${filteredWalletPoints.length} filtered wallet points (from ${allWalletPoints.length} total)`);
+    console.log(`DEBUG v30: Raycast targets: All ${allWalletPoints.length} wallet points (${levelOneWallets.length} Level 1 wallets, ${smallWalletPoints.length} small wallet points)`);
+    console.log(`DEBUG v30: Previously would have included only ${smallWalletPoints.length} points`);
   }
   
   // Get camera distance to scene center for distance check
   const cameraDistanceToCenter = camera.position.length();
-  const maxInteractionDistance = 10000; // Maximum distance for interaction
+  const maxInteractionDistance = 50000; // Increased from 10000 to 50000 to allow hover from farther away
   
-  // Perform raycast only if camera is within reasonable distance
+  // Perform raycast - temporarily remove distance restriction to debug hover issues
   let intersects = [];
-  if (cameraDistanceToCenter <= maxInteractionDistance) {
-    intersects = raycaster.intersectObjects(filteredWalletPoints, false);
+  // DEBUG v30: Removed distance check to ensure hover works regardless of camera position
+  intersects = raycaster.intersectObjects(filteredWalletPoints, false);
+  
+  // Debug log distance and if distance would have blocked hover
+  if (frameCounter % 60 === 0) {
+    console.log(`DEBUG v30: Camera distance: ${cameraDistanceToCenter.toFixed(2)}, would hover be disabled? ${cameraDistanceToCenter > maxInteractionDistance}`);
   }
   
-  // Debug: Log intersections and distance
+  // DEBUG v30: Enhanced logging for hover debugging
   if (frameCounter % 60 === 0) {
     console.log(`Camera distance to center: ${cameraDistanceToCenter.toFixed(2)}, max interaction: ${maxInteractionDistance}`);
-    console.log(`Hover enabled: ${cameraDistanceToCenter <= maxInteractionDistance}`);
+    console.log(`Hover enabled: Always enabled for debugging in v30 (would be ${cameraDistanceToCenter <= maxInteractionDistance} with distance check)`);
     
     if (intersects.length > 0) {
-      console.log(`Found ${intersects.length} intersections with wallet points`);
-      console.log(`First intersection: distance=${intersects[0].distance.toFixed(2)}, type=${intersects[0].object.userData?.isLevel1Wallet ? 'Level 1 Wallet' : 'Small Wallet Point'}`);
+      console.log(`DEBUG v30: Found ${intersects.length} intersections with wallet points`);
+      // Log details of the first 3 intersections
+      for (let i = 0; i < Math.min(3, intersects.length); i++) {
+        const obj = intersects[i].object;
+        console.log(`DEBUG v30: Intersection ${i+1}: distance=${intersects[i].distance.toFixed(2)}, ` +
+                   `type=${obj.userData?.isLevel1Wallet ? 'Level 1 Wallet' : 'Small Wallet Point'}, ` +
+                   `has wallet data: ${!!obj.userData?.walletData}, ` +
+                   `material: ${!!obj.material}, ` +
+                   `visible: ${!!obj.visible}`);
+      }
+    } else {
+      console.log(`DEBUG v30: NO INTERSECTIONS FOUND with ${filteredWalletPoints.length} wallet points`);
+      console.log(`DEBUG v30: Raycaster params:`, raycaster.params);
     }
   }
   
