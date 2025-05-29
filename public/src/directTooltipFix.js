@@ -56,11 +56,11 @@ export function updateTooltipContent(tooltip, walletData) {
     holdingsType = 'No tokens found';
   }
   
-  // Update tooltip content - without Total Value line
+  // Update tooltip content - without Title, Holds Only line, and with clickable address
   tooltip.innerHTML = `
-    <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
-    <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">${shortAddress}</div>
-    <div class="tooltip-type" style="margin-bottom: 5px; color: #ffcc88;">${holdingsType}</div>
+    <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">
+      <a href="https://solscan.io/account/${address}" target="_blank" style="color: #aaccff; text-decoration: underline;">${shortAddress}</a>
+    </div>
     <div class="tooltip-holdings" style="margin-bottom: 5px;">
       <div class="tooltip-fartcoin" style="color: #88ff88;">💨: ${fartAmountFormatted}</div>
       <div class="tooltip-goat" style="color: #8888ff;">🐐: ${goatAmountFormatted}</div>
@@ -127,14 +127,14 @@ export function createTooltipIfMissing() {
     tooltip.style.border = '2px solid rgba(100, 200, 255, 0.8)';
     tooltip.style.boxShadow = '0 0 15px rgba(0, 100, 255, 0.7)';
     
-    // Create tooltip content - without Total Value line
+    // Create tooltip content - with clickable address and without header/holds only line
     tooltip.innerHTML = `
-      <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
-      <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">0x0000...0000</div>
-      <div class="tooltip-type" style="margin-bottom: 5px; color: #ffcc88;">Loading...</div>
+      <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">
+        <a href="https://solscan.io/account/0x0000000000000000" target="_blank" style="color: #aaccff; text-decoration: underline;">0x0000...0000</a>
+      </div>
       <div class="tooltip-holdings" style="margin-bottom: 5px;">
-        <div class="tooltip-fartcoin" style="color: #88ff88;">Fartcoin: 0</div>
-        <div class="tooltip-goat" style="color: #8888ff;">Goatcoin: 0</div>
+        <div class="tooltip-fartcoin" style="color: #88ff88;">💨: 0</div>
+        <div class="tooltip-goat" style="color: #8888ff;">🐐: 0</div>
       </div>
     `;
     

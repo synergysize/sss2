@@ -29,10 +29,11 @@ document.addEventListener('DOMContentLoaded', function() {
     tooltip.style.border = '1px solid rgba(255, 255, 255, 0.3)';
     tooltip.style.boxShadow = '0 0 10px rgba(0, 100, 255, 0.5)';
     
-    // Create tooltip content
+    // Create tooltip content - with clickable address and without header
     tooltip.innerHTML = `
-      <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
-      <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">0x0000...0000</div>
+      <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">
+        <a href="https://solscan.io/account/0x0000000000000000" target="_blank" style="color: #aaccff; text-decoration: underline;">0x0000...0000</a>
+      </div>
       <div class="tooltip-holdings" style="margin-bottom: 5px;">
         <div class="tooltip-fartcoin" style="color: #88ff88;">💨: 0</div>
         <div class="tooltip-goat" style="color: #8888ff;">🐐: 0</div>
