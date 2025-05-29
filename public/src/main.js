@@ -7,8 +7,8 @@ import tooltipFix from './tooltipFix.js';
 import WalletTooltip from './walletTooltip.js';
 import directTooltipFix, { createTooltipIfMissing, showTooltip, hideTooltip, updateTooltipContent } from './directTooltipFix.js';
 
-// V30 - Debug hover functionality and removed distance restrictions
-console.log("Starting 3D Blockchain Visualizer v30");
+// V31 - Added emojis, enhanced starfield, and constellations
+console.log("Starting 3D Blockchain Visualizer v31 with 💨 and 🐐 tokens");
 
 // Create a point texture for better visibility
 function createPointTexture() {
@@ -64,7 +64,7 @@ versionDisplay.style.color = 'white';
 versionDisplay.style.opacity = '0.3';
 versionDisplay.style.fontSize = '16px';
 versionDisplay.style.fontFamily = 'Arial, sans-serif';
-versionDisplay.innerHTML = 'v30';
+versionDisplay.innerHTML = 'v31';
 document.body.appendChild(versionDisplay);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -150,46 +150,540 @@ window.addEventListener('mousemove', onMouseMove, false);
 
 // Create starfield background
 function createStarfield() {
-  const geometry = new THREE.BufferGeometry();
-  const starCount = 2000;
-  const positions = new Float32Array(starCount * 3);
-  const sizes = new Float32Array(starCount);
+  // Create multiple star layers for a more immersive effect
+  const starGroup = new THREE.Group();
+  starGroup.name = 'enhancedStarfield';
   
-  // Create stars at random positions with random sizes
-  for (let i = 0; i < starCount; i++) {
+  // Create distant background stars (larger count, smaller size)
+  const bgGeometry = new THREE.BufferGeometry();
+  const bgStarCount = 8000; // 4x more stars than before
+  const bgPositions = new Float32Array(bgStarCount * 3);
+  const bgSizes = new Float32Array(bgStarCount);
+  const bgColors = new Float32Array(bgStarCount * 3);
+  
+  // Create background stars at random positions with varying colors
+  for (let i = 0; i < bgStarCount; i++) {
     const i3 = i * 3;
-    // Random position in a large sphere around the scene
-    const radius = 5000 + Math.random() * 10000;
+    // Random position in a large sphere around the scene (360° coverage)
+    const radius = 20000 + Math.random() * 10000; // More distant backdrop
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.random() * Math.PI;
     
-    positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
-    positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-    positions[i3 + 2] = radius * Math.cos(phi);
+    bgPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+    bgPositions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+    bgPositions[i3 + 2] = radius * Math.cos(phi);
     
-    // Random sizes between 1 and 5
-    sizes[i] = 1 + Math.random() * 4;
+    // Random sizes between 0.5 and 2.5 for background stars
+    bgSizes[i] = 0.5 + Math.random() * 2;
+    
+    // Vary star colors between white, blue, and light purple
+    const colorChoice = Math.random();
+    if (colorChoice > 0.7) {
+      // Bluish stars (30%)
+      bgColors[i3] = 0.7 + Math.random() * 0.3; // R
+      bgColors[i3 + 1] = 0.8 + Math.random() * 0.2; // G
+      bgColors[i3 + 2] = 1.0; // B
+    } else if (colorChoice > 0.4) {
+      // Whitish stars (30%)
+      bgColors[i3] = 0.9 + Math.random() * 0.1; // R
+      bgColors[i3 + 1] = 0.9 + Math.random() * 0.1; // G
+      bgColors[i3 + 2] = 0.9 + Math.random() * 0.1; // B
+    } else {
+      // Purple-ish stars (40%)
+      bgColors[i3] = 0.7 + Math.random() * 0.3; // R
+      bgColors[i3 + 1] = 0.4 + Math.random() * 0.3; // G
+      bgColors[i3 + 2] = 0.9 + Math.random() * 0.1; // B
+    }
   }
   
-  geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+  bgGeometry.setAttribute('position', new THREE.BufferAttribute(bgPositions, 3));
+  bgGeometry.setAttribute('size', new THREE.BufferAttribute(bgSizes, 1));
+  bgGeometry.setAttribute('color', new THREE.BufferAttribute(bgColors, 3));
   
-  // Star material with soft glow
-  const starMaterial = new THREE.PointsMaterial({
-    color: 0xffffff,
+  // Background star material with colors
+  const bgStarMaterial = new THREE.PointsMaterial({
     size: 2,
     transparent: true,
     opacity: 0.8,
+    vertexColors: true,
     sizeAttenuation: true,
     blending: THREE.AdditiveBlending
   });
   
-  // Create stars and add to scene
-  const stars = new THREE.Points(geometry, starMaterial);
-  stars.name = 'starfield';
-  scene.add(stars);
+  // Create background stars and add to group
+  const bgStars = new THREE.Points(bgGeometry, bgStarMaterial);
+  bgStars.name = 'backgroundStars';
+  starGroup.add(bgStars);
   
-  return stars;
+  // Create Milky Way galaxy band
+  const galaxyGeometry = new THREE.BufferGeometry();
+  const galaxyStarCount = 5000;
+  const galaxyPositions = new Float32Array(galaxyStarCount * 3);
+  const galaxySizes = new Float32Array(galaxyStarCount);
+  const galaxyColors = new Float32Array(galaxyStarCount * 3);
+  
+  // Create a band that wraps around like a galaxy
+  for (let i = 0; i < galaxyStarCount; i++) {
+    const i3 = i * 3;
+    
+    // Create a disk-like distribution for the galaxy band
+    const radius = 15000 + Math.random() * 7000;
+    const theta = Math.random() * Math.PI * 2;
+    
+    // Add some thickness to the galactic plane
+    const height = (Math.random() - 0.5) * 2000;
+    
+    galaxyPositions[i3] = radius * Math.cos(theta);
+    galaxyPositions[i3 + 1] = height; // Small vertical spread
+    galaxyPositions[i3 + 2] = radius * Math.sin(theta);
+    
+    // Larger sizes for galaxy dust
+    galaxySizes[i] = 2 + Math.random() * 5;
+    
+    // Beautiful nebula colors: purples, blues and hints of teal
+    const nebulaChoice = Math.random();
+    if (nebulaChoice > 0.7) {
+      // Purple hues
+      galaxyColors[i3] = 0.6 + Math.random() * 0.3; // R
+      galaxyColors[i3 + 1] = 0.3 + Math.random() * 0.2; // G
+      galaxyColors[i3 + 2] = 0.8 + Math.random() * 0.2; // B
+    } else if (nebulaChoice > 0.4) {
+      // Blue hues
+      galaxyColors[i3] = 0.2 + Math.random() * 0.2; // R
+      galaxyColors[i3 + 1] = 0.4 + Math.random() * 0.3; // G
+      galaxyColors[i3 + 2] = 0.8 + Math.random() * 0.2; // B
+    } else {
+      // Teal/cyan hues
+      galaxyColors[i3] = 0.1 + Math.random() * 0.2; // R
+      galaxyColors[i3 + 1] = 0.6 + Math.random() * 0.3; // G
+      galaxyColors[i3 + 2] = 0.7 + Math.random() * 0.3; // B
+    }
+  }
+  
+  galaxyGeometry.setAttribute('position', new THREE.BufferAttribute(galaxyPositions, 3));
+  galaxyGeometry.setAttribute('size', new THREE.BufferAttribute(galaxySizes, 1));
+  galaxyGeometry.setAttribute('color', new THREE.BufferAttribute(galaxyColors, 3));
+  
+  // Galaxy material with soft glow
+  const galaxyMaterial = new THREE.PointsMaterial({
+    size: 3,
+    transparent: true,
+    opacity: 0.7,
+    vertexColors: true,
+    sizeAttenuation: true,
+    blending: THREE.AdditiveBlending
+  });
+  
+  // Create galaxy band and add to group
+  const galaxyBand = new THREE.Points(galaxyGeometry, galaxyMaterial);
+  galaxyBand.name = 'galaxyBand';
+  starGroup.add(galaxyBand);
+  
+  // Add the starfield group to the scene
+  scene.add(starGroup);
+  
+  // Create constellations (will be implemented in a separate function)
+  createConstellations(starGroup);
+  
+  return starGroup;
+}
+
+// Create the constellations
+function createConstellations(starGroup) {
+  // Create goat constellation
+  const goatConstellation = createGoatConstellation();
+  goatConstellation.name = 'goatConstellation';
+  goatConstellation.userData = { 
+    isConstellation: true,
+    constellationType: 'goat',
+    lastPulseTime: 0,
+    shouldPulse: false
+  };
+  starGroup.add(goatConstellation);
+  
+  // Create butt constellation
+  const buttConstellation = createButtConstellation();
+  buttConstellation.name = 'buttConstellation';
+  buttConstellation.userData = { 
+    isConstellation: true, 
+    constellationType: 'butt',
+    lastPulseTime: 0,
+    shouldPulse: false
+  };
+  starGroup.add(buttConstellation);
+  
+  // Schedule random pulsing for constellations
+  setInterval(() => {
+    // Randomly decide which constellation to pulse
+    if (Math.random() > 0.6) { // 40% chance to pulse one of them
+      if (Math.random() > 0.5) {
+        goatConstellation.userData.shouldPulse = true;
+        goatConstellation.userData.lastPulseTime = 0;
+      } else {
+        buttConstellation.userData.shouldPulse = true;
+        buttConstellation.userData.lastPulseTime = 0;
+      }
+    }
+  }, 8000); // Check every 8 seconds
+}
+
+// Create a goat-shaped constellation
+function createGoatConstellation() {
+  const group = new THREE.Group();
+  
+  // Define the star positions for a simple goat shape
+  const starPositions = [
+    // Head
+    new THREE.Vector3(-3000, 3000, -12000),
+    new THREE.Vector3(-2500, 3800, -12000),
+    new THREE.Vector3(-2000, 3500, -12000),
+    new THREE.Vector3(-1500, 3200, -12000),
+    // Horns
+    new THREE.Vector3(-2500, 4500, -12000),
+    new THREE.Vector3(-2000, 4800, -12000),
+    new THREE.Vector3(-1600, 4500, -12000),
+    // Body
+    new THREE.Vector3(-1000, 3000, -12000),
+    new THREE.Vector3(-500, 2800, -12000),
+    new THREE.Vector3(0, 2600, -12000),
+    new THREE.Vector3(500, 2700, -12000),
+    new THREE.Vector3(1000, 2800, -12000),
+    // Legs
+    new THREE.Vector3(-500, 2800, -12000),
+    new THREE.Vector3(-500, 2000, -12000),
+    new THREE.Vector3(-400, 1500, -12000),
+    new THREE.Vector3(500, 2700, -12000),
+    new THREE.Vector3(500, 2000, -12000),
+    new THREE.Vector3(600, 1500, -12000),
+    // Tail
+    new THREE.Vector3(1000, 2800, -12000),
+    new THREE.Vector3(1200, 3000, -12000)
+  ];
+  
+  // Create a bright star at each position
+  starPositions.forEach((position, i) => {
+    const star = createBrightStar(0xccffff, 4 + Math.random() * 3);
+    star.position.copy(position);
+    star.userData = { index: i, isConstellationStar: true };
+    group.add(star);
+  });
+  
+  // Create lines connecting the stars
+  const lineConnections = [
+    [0, 1], [1, 2], [2, 3], // Head
+    [1, 4], [4, 5], [5, 6], // Horns
+    [3, 7], [7, 8], [8, 9], [9, 10], [10, 11], // Body
+    [8, 12], [12, 13], [13, 14], // Front leg
+    [9, 15], [15, 16], [16, 17], // Back leg
+    [11, 18], [18, 19] // Tail
+  ];
+  
+  // Create connecting lines
+  lineConnections.forEach(([fromIndex, toIndex]) => {
+    const from = starPositions[fromIndex];
+    const to = starPositions[toIndex];
+    
+    const lineMaterial = new THREE.LineBasicMaterial({ 
+      color: 0x88ccff, 
+      transparent: true, 
+      opacity: 0.3,
+      blending: THREE.AdditiveBlending
+    });
+    
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints([from, to]);
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    line.userData = { isConstellationLine: true };
+    group.add(line);
+  });
+  
+  // Add a subtle glow around the constellation
+  const glowMaterial = new THREE.SpriteMaterial({
+    map: createGlowTexture(128, 'rgba(150, 200, 255, 0.2)'),
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const glow = new THREE.Sprite(glowMaterial);
+  glow.scale.set(6000, 5000, 1);
+  glow.position.set(-1000, 3000, -12100); // Slightly behind the constellation
+  glow.userData = { isConstellationGlow: true };
+  group.add(glow);
+  
+  return group;
+}
+
+// Create a butt-shaped constellation
+function createButtConstellation() {
+  const group = new THREE.Group();
+  
+  // Define the star positions for a simple butt shape
+  const starPositions = [
+    // Left cheek outline
+    new THREE.Vector3(6000, 2000, -13000),
+    new THREE.Vector3(5500, 2500, -13000),
+    new THREE.Vector3(5000, 2800, -13000),
+    new THREE.Vector3(4500, 2900, -13000),
+    new THREE.Vector3(4000, 2800, -13000),
+    // Center divide
+    new THREE.Vector3(3500, 2500, -13000),
+    // Right cheek outline
+    new THREE.Vector3(3000, 2800, -13000),
+    new THREE.Vector3(2500, 2900, -13000),
+    new THREE.Vector3(2000, 2800, -13000),
+    new THREE.Vector3(1500, 2500, -13000),
+    new THREE.Vector3(1000, 2000, -13000),
+    // Bottom connector
+    new THREE.Vector3(2000, 1500, -13000),
+    new THREE.Vector3(3500, 1300, -13000),
+    new THREE.Vector3(5000, 1500, -13000)
+  ];
+  
+  // Create a bright star at each position
+  starPositions.forEach((position, i) => {
+    const star = createBrightStar(0xffccaa, 4 + Math.random() * 3);
+    star.position.copy(position);
+    star.userData = { index: i, isConstellationStar: true };
+    group.add(star);
+  });
+  
+  // Create lines connecting the stars
+  const lineConnections = [
+    [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], // Left cheek to center
+    [5, 6], [6, 7], [7, 8], [8, 9], [9, 10], // Center to right cheek
+    [10, 11], [11, 12], [12, 13], [13, 0] // Bottom back to start
+  ];
+  
+  // Create connecting lines
+  lineConnections.forEach(([fromIndex, toIndex]) => {
+    const from = starPositions[fromIndex];
+    const to = starPositions[toIndex];
+    
+    const lineMaterial = new THREE.LineBasicMaterial({ 
+      color: 0xffaa88, 
+      transparent: true, 
+      opacity: 0.3,
+      blending: THREE.AdditiveBlending
+    });
+    
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints([from, to]);
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    line.userData = { isConstellationLine: true };
+    group.add(line);
+  });
+  
+  // Add a subtle glow around the constellation
+  const glowMaterial = new THREE.SpriteMaterial({
+    map: createGlowTexture(128, 'rgba(255, 180, 150, 0.2)'),
+    transparent: true,
+    opacity: 0.4,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const glow = new THREE.Sprite(glowMaterial);
+  glow.scale.set(6000, 3000, 1);
+  glow.position.set(3500, 2200, -13100); // Slightly behind the constellation
+  glow.userData = { isConstellationGlow: true };
+  group.add(glow);
+  
+  return group;
+}
+
+// Helper function to create a bright star
+function createBrightStar(color = 0xffffff, size = 5) {
+  const starMaterial = new THREE.SpriteMaterial({
+    map: createStarTexture(),
+    color: color,
+    transparent: true,
+    opacity: 0.9,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const star = new THREE.Sprite(starMaterial);
+  star.scale.set(size * 30, size * 30, 1); // Make stars bigger for constellations
+  return star;
+}
+
+// Create a star-shaped texture for the constellation stars
+function createStarTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  
+  const context = canvas.getContext('2d');
+  
+  // Create a radial gradient for the star glow
+  const gradient = context.createRadialGradient(32, 32, 0, 32, 32, 32);
+  gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+  gradient.addColorStop(0.1, 'rgba(255, 255, 255, 0.9)');
+  gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.4)');
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, 64, 64);
+  
+  // Add a star shape in the center
+  context.beginPath();
+  for (let i = 0; i < 5; i++) {
+    const outerRadius = 24;
+    const innerRadius = 12;
+    
+    const outerX = 32 + outerRadius * Math.cos((i * 2 * Math.PI / 5) - Math.PI/2);
+    const outerY = 32 + outerRadius * Math.sin((i * 2 * Math.PI / 5) - Math.PI/2);
+    
+    const innerX = 32 + innerRadius * Math.cos(((i + 0.5) * 2 * Math.PI / 5) - Math.PI/2);
+    const innerY = 32 + innerRadius * Math.sin(((i + 0.5) * 2 * Math.PI / 5) - Math.PI/2);
+    
+    if (i === 0) {
+      context.moveTo(outerX, outerY);
+    } else {
+      context.lineTo(outerX, outerY);
+    }
+    
+    context.lineTo(innerX, innerY);
+  }
+  context.closePath();
+  
+  context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  context.fill();
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+// Create a glow texture for the constellation background
+function createGlowTexture(size = 64, color = 'rgba(255, 255, 255, 0.5)') {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  
+  const context = canvas.getContext('2d');
+  
+  // Create a radial gradient for the glow
+  const gradient = context.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  gradient.addColorStop(0, color);
+  gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, size, size);
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+
+// Update constellation animations (pulsing effect)
+function updateConstellationAnimations(delta) {
+  // Find constellations in the scene
+  const goatConstellation = scene.getObjectByName('goatConstellation');
+  const buttConstellation = scene.getObjectByName('buttConstellation');
+  
+  // Process goat constellation animation
+  if (goatConstellation && goatConstellation.userData.shouldPulse) {
+    goatConstellation.userData.lastPulseTime += delta;
+    const pulseTime = goatConstellation.userData.lastPulseTime;
+    const pulseDuration = 3.0; // Pulse for 3 seconds
+    
+    if (pulseTime <= pulseDuration) {
+      // Calculate pulse intensity (peak at 1.5 seconds)
+      const pulseIntensity = Math.sin((pulseTime / pulseDuration) * Math.PI);
+      
+      // Apply pulse effect to stars and lines
+      goatConstellation.children.forEach(child => {
+        if (child.userData.isConstellationStar) {
+          // Increase brightness and size of stars
+          child.material.color.setRGB(
+            1.0, // Full red
+            1.0, // Full green
+            0.8 + 0.2 * pulseIntensity // Blue varies with pulse
+          );
+          const baseStar = 4 + child.userData.index % 3;
+          const pulseScale = baseStar * 30 * (1 + pulseIntensity * 0.5);
+          child.scale.set(pulseScale, pulseScale, 1);
+        } else if (child.userData.isConstellationLine) {
+          // Increase opacity of connecting lines
+          child.material.opacity = 0.3 + 0.5 * pulseIntensity;
+          child.material.color.setRGB(
+            0.5 + 0.5 * pulseIntensity, // More red during pulse
+            0.8 + 0.2 * pulseIntensity, // More green during pulse
+            1.0 // Full blue
+          );
+        } else if (child.userData.isConstellationGlow) {
+          // Increase glow opacity
+          child.material.opacity = 0.4 + 0.3 * pulseIntensity;
+        }
+      });
+    } else {
+      // Reset after pulse is complete
+      goatConstellation.userData.shouldPulse = false;
+      goatConstellation.children.forEach(child => {
+        if (child.userData.isConstellationStar) {
+          child.material.color.setHex(0xccffff);
+          const baseStar = 4 + child.userData.index % 3;
+          child.scale.set(baseStar * 30, baseStar * 30, 1);
+        } else if (child.userData.isConstellationLine) {
+          child.material.opacity = 0.3;
+          child.material.color.setHex(0x88ccff);
+        } else if (child.userData.isConstellationGlow) {
+          child.material.opacity = 0.4;
+        }
+      });
+    }
+  }
+  
+  // Process butt constellation animation
+  if (buttConstellation && buttConstellation.userData.shouldPulse) {
+    buttConstellation.userData.lastPulseTime += delta;
+    const pulseTime = buttConstellation.userData.lastPulseTime;
+    const pulseDuration = 3.0; // Pulse for 3 seconds
+    
+    if (pulseTime <= pulseDuration) {
+      // Calculate pulse intensity (peak at 1.5 seconds)
+      const pulseIntensity = Math.sin((pulseTime / pulseDuration) * Math.PI);
+      
+      // Apply pulse effect to stars and lines
+      buttConstellation.children.forEach(child => {
+        if (child.userData.isConstellationStar) {
+          // Increase brightness and size of stars
+          child.material.color.setRGB(
+            1.0, // Full red
+            0.7 + 0.3 * pulseIntensity, // Green varies with pulse
+            0.5 + 0.3 * pulseIntensity // Blue varies with pulse
+          );
+          const baseStar = 4 + child.userData.index % 3;
+          const pulseScale = baseStar * 30 * (1 + pulseIntensity * 0.5);
+          child.scale.set(pulseScale, pulseScale, 1);
+        } else if (child.userData.isConstellationLine) {
+          // Increase opacity of connecting lines
+          child.material.opacity = 0.3 + 0.5 * pulseIntensity;
+          child.material.color.setRGB(
+            1.0, // Full red
+            0.6 + 0.4 * pulseIntensity, // More green during pulse
+            0.5 + 0.3 * pulseIntensity // More blue during pulse
+          );
+        } else if (child.userData.isConstellationGlow) {
+          // Increase glow opacity
+          child.material.opacity = 0.4 + 0.3 * pulseIntensity;
+        }
+      });
+    } else {
+      // Reset after pulse is complete
+      buttConstellation.userData.shouldPulse = false;
+      buttConstellation.children.forEach(child => {
+        if (child.userData.isConstellationStar) {
+          child.material.color.setHex(0xffccaa);
+          const baseStar = 4 + child.userData.index % 3;
+          child.scale.set(baseStar * 30, baseStar * 30, 1);
+        } else if (child.userData.isConstellationLine) {
+          child.material.opacity = 0.3;
+          child.material.color.setHex(0xffaa88);
+        } else if (child.userData.isConstellationGlow) {
+          child.material.opacity = 0.4;
+        }
+      });
+    }
+  }
 }
 
 // Add starfield to the scene
@@ -650,6 +1144,9 @@ function animate() {
   requestAnimationFrame(animate);
   
   const delta = clock.getDelta();
+  
+  // Animate constellation pulsing
+  updateConstellationAnimations(delta);
   
   // Update 3D tooltip position
   walletTooltip.update();

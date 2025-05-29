@@ -101,7 +101,7 @@ const loadWalletData = () => {
       fartcoinCSV = FARTCOIN_DATA;
       goatTokenCSV = GOATTOKEN_DATA;
     } else {
-      console.log('Successfully loaded full dataset from CSV files (1000+ wallets each)');
+      console.log('Successfully loaded full dataset of 💨 and 🐐 from CSV files (1000+ wallets each)');
     }
     
     // Parse the CSV data
@@ -152,8 +152,8 @@ const loadWalletData = () => {
       return totalB - totalA;
     });
     
-    console.log(`Loaded ${fartcoinData.length} Fartcoin holders`);
-    console.log(`Loaded ${goatTokenData.length} Goat Token holders`);
+    console.log(`Loaded ${fartcoinData.length} 💨 holders`);
+    console.log(`Loaded ${goatTokenData.length} 🐐 holders`);
     console.log(`Found ${sharedHolders.length} shared wallet addresses`);
     
     return {

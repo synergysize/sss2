@@ -47,11 +47,11 @@ export function updateTooltipContent(tooltip, walletData) {
   // Determine token holdings description
   let holdingsType = '';
   if (fartAmount > 0 && goatAmount > 0) {
-    holdingsType = 'Holds both Fartcoin and Goatcoin';
+    holdingsType = 'Holds both 💨 and 🐐';
   } else if (fartAmount > 0) {
-    holdingsType = 'Holds Fartcoin only';
+    holdingsType = 'Holds 💨 only';
   } else if (goatAmount > 0) {
-    holdingsType = 'Holds Goatcoin only';
+    holdingsType = 'Holds 🐐 only';
   } else {
     holdingsType = 'No tokens found';
   }
@@ -62,8 +62,8 @@ export function updateTooltipContent(tooltip, walletData) {
     <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">${shortAddress}</div>
     <div class="tooltip-type" style="margin-bottom: 5px; color: #ffcc88;">${holdingsType}</div>
     <div class="tooltip-holdings" style="margin-bottom: 5px;">
-      <div class="tooltip-fartcoin" style="color: #88ff88;">Fartcoin: ${fartAmountFormatted}</div>
-      <div class="tooltip-goat" style="color: #8888ff;">Goatcoin: ${goatAmountFormatted}</div>
+      <div class="tooltip-fartcoin" style="color: #88ff88;">💨: ${fartAmountFormatted}</div>
+      <div class="tooltip-goat" style="color: #8888ff;">🐐: ${goatAmountFormatted}</div>
     </div>
   `;
   

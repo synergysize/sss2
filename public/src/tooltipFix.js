@@ -34,8 +34,8 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="tooltip-title" style="font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #88ccff;">Wallet Details</div>
       <div class="tooltip-address" style="font-family: monospace; font-size: 12px; margin-bottom: 8px; color: #aaccff; word-break: break-all;">0x0000...0000</div>
       <div class="tooltip-holdings" style="margin-bottom: 5px;">
-        <div class="tooltip-fartcoin" style="color: #88ff88;">Fartcoin: 0</div>
-        <div class="tooltip-goat" style="color: #8888ff;">Goat: 0</div>
+        <div class="tooltip-fartcoin" style="color: #88ff88;">💨: 0</div>
+        <div class="tooltip-goat" style="color: #8888ff;">🐐: 0</div>
       </div>
       <div class="tooltip-total" style="margin-top: 8px; font-weight: bold; color: #ffffff;">Total Value: 0</div>
     `;
