@@ -23,144 +23,120 @@ const randomBetween = (min, max) => {
 };
 
 // Function to map shared wallets near the origin
-const mapSharedWallets = () => {
-  // Make sure we have data to map
-  if (!sharedHolders || sharedHolders.length === 0) {
-    console.warn('No shared wallet data available for mapping');
-    return [];
-  }
+const mapSharedWallets = (wallet, i, totalCount) => {
+  // Calculate total holdings to determine importance
+  const totalHolding = wallet.fartAmount + wallet.goatAmount;
+  const normalizedIndex = i / totalCount;
   
-  return sharedHolders.map((wallet, i) => {
-    // Calculate total holdings to determine importance
-    const totalHolding = wallet.fartAmount + wallet.goatAmount;
-    const normalizedIndex = i / sharedHolders.length;
-    
-    // Limit radius to within 1000 for shared wallets and cluster more tightly
-    // Increased from 800 to 1000 for better sphere separation
-    const r = Math.min(1000, baseRadius * Math.log(normalizedIndex + 1.5) / 3);
-    const theta = i * goldenAngle;
-    const phi = i * 0.5;
-    
-    // Calculate base positions using spherical coordinates with increased spacing
-    let x = r * spacingFactor * Math.cos(theta) * Math.sin(phi);
-    let y = r * spacingFactor * Math.sin(theta) * Math.sin(phi);
-    let z = r * spacingFactor * Math.cos(phi);
-    
-    // Add small noise for more natural appearance
-    // Scale noise proportionally to maintain visual consistency
-    x += randomBetween(-baseRadius/18, baseRadius/18); // Reduced from /15 to /18 to keep noise proportional
-    y += randomBetween(-baseRadius/18, baseRadius/18);
-    z += randomBetween(-baseRadius/18, baseRadius/18);
-    
-    // White color for shared wallets (wallets holding both Fartcoin and Goat tokens)
-    // Brightness correlates with token amount
-    const brightness = Math.min(255, Math.floor(200 + totalHolding / 1000000));
-    const color = `rgb(${brightness}, ${brightness}, ${brightness})`;
-    
-    return {
-      x, y, z,
-      address: wallet.address,
-      fartAmount: wallet.fartAmount,
-      goatAmount: wallet.goatAmount,
-      totalHolding,
-      walletType: 'shared',
-      color
-    };
-  });
+  // Limit radius to within 1000 for shared wallets and cluster more tightly
+  // Increased from 800 to 1000 for better sphere separation
+  const r = Math.min(1000, baseRadius * Math.log(normalizedIndex + 1.5) / 3);
+  const theta = i * goldenAngle;
+  const phi = i * 0.5;
+  
+  // Calculate base positions using spherical coordinates with increased spacing
+  let x = r * spacingFactor * Math.cos(theta) * Math.sin(phi);
+  let y = r * spacingFactor * Math.sin(theta) * Math.sin(phi);
+  let z = r * spacingFactor * Math.cos(phi);
+  
+  // Add small noise for more natural appearance
+  // Scale noise proportionally to maintain visual consistency
+  x += randomBetween(-baseRadius/18, baseRadius/18); // Reduced from /15 to /18 to keep noise proportional
+  y += randomBetween(-baseRadius/18, baseRadius/18);
+  z += randomBetween(-baseRadius/18, baseRadius/18);
+  
+  // White color for shared wallets (wallets holding both Fartcoin and Goat tokens)
+  // Brightness correlates with token amount
+  const brightness = Math.min(255, Math.floor(200 + totalHolding / 1000000));
+  const color = `rgb(${brightness}, ${brightness}, ${brightness})`;
+  
+  return {
+    x, y, z,
+    address: wallet.address,
+    fartAmount: wallet.fartAmount,
+    goatAmount: wallet.goatAmount,
+    totalHolding,
+    walletType: 'shared',
+    color
+  };
 };
 
 // Function to map Fartcoin wallets in +X space with recursive spirals
-const mapFartcoinWallets = () => {
-  // Make sure we have data to map
-  if (!fartcoinHolders || fartcoinHolders.length === 0) {
-    console.warn('No Fartcoin wallet data available for mapping');
-    return [];
+const mapFartcoinWallets = (wallet, i) => {
+  // Use logarithmic scaling for more interesting distribution with increased spacing
+  const r = baseRadius * Math.log(i + 2);
+  const theta = i * goldenAngle;
+  const phi = i * 0.5;
+  
+  // Base position calculation - shifted toward +X axis with increased spacing
+  let x = r * spacingFactor * Math.cos(theta) + baseRadius;
+  let y = r * spacingFactor * Math.sin(theta);
+  let z = r * spacingFactor * Math.sin(phi);
+  
+  // Add fractal sub-clusters by using modulo operations - increase spacing
+  if (i % 5 === 0) {
+    x += 250 * Math.sin(i); // Increased from 200 to 250
+    y += 250 * Math.cos(i); // Increased from 200 to 250
   }
   
-  return fartcoinHolders.map((wallet, i) => {
-    // Use logarithmic scaling for more interesting distribution with increased spacing
-    const r = baseRadius * Math.log(i + 2);
-    const theta = i * goldenAngle;
-    const phi = i * 0.5;
-    
-    // Base position calculation - shifted toward +X axis with increased spacing
-    let x = r * spacingFactor * Math.cos(theta) + baseRadius;
-    let y = r * spacingFactor * Math.sin(theta);
-    let z = r * spacingFactor * Math.sin(phi);
-    
-    // Add fractal sub-clusters by using modulo operations - increase spacing
-    if (i % 5 === 0) {
-      x += 250 * Math.sin(i); // Increased from 200 to 250
-      y += 250 * Math.cos(i); // Increased from 200 to 250
-    }
-    
-    // Add small noise - adjusted for increased spacing
-    x += randomBetween(-baseRadius/12, baseRadius/12); // Reduced from /10 to /12 for proportional noise
-    y += randomBetween(-baseRadius/12, baseRadius/12);
-    z += randomBetween(-baseRadius/12, baseRadius/12);
-    
-    // Green color for Fartcoin-only wallets
-    // Brightness correlates with token amount
-    const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
-    const color = `rgb(0, ${brightness + 55}, 0)`;
-    
-    return {
-      x, y, z,
-      address: wallet.address,
-      fartAmount: wallet.amount,
-      goatAmount: 0,
-      totalHolding: wallet.amount,
-      walletType: 'fartcoin',
-      color
-    };
-  });
+  // Add small noise - adjusted for increased spacing
+  x += randomBetween(-baseRadius/12, baseRadius/12); // Reduced from /10 to /12 for proportional noise
+  y += randomBetween(-baseRadius/12, baseRadius/12);
+  z += randomBetween(-baseRadius/12, baseRadius/12);
+  
+  // Green color for Fartcoin-only wallets
+  // Brightness correlates with token amount
+  const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
+  const color = `rgb(0, ${brightness + 55}, 0)`;
+  
+  return {
+    x, y, z,
+    address: wallet.address,
+    fartAmount: wallet.amount,
+    goatAmount: 0,
+    totalHolding: wallet.amount,
+    walletType: 'fartcoin',
+    color
+  };
 };
 
 // Function to map Goat Token wallets in -X space (mirrored spirals)
-const mapGoatTokenWallets = () => {
-  // Make sure we have data to map
-  if (!goatTokenHolders || goatTokenHolders.length === 0) {
-    console.warn('No Goat Token wallet data available for mapping');
-    return [];
+const mapGoatTokenWallets = (wallet, i) => {
+  // Use logarithmic scaling for more interesting distribution with increased spacing
+  const r = baseRadius * Math.log(i + 2);
+  const theta = i * goldenAngle;
+  const phi = i * 0.5;
+  
+  // Base position calculation - shifted toward -X axis (mirrored from Fartcoin) with increased spacing
+  let x = -(r * spacingFactor * Math.cos(theta)) - baseRadius;
+  let y = r * spacingFactor * Math.sin(theta);
+  let z = r * spacingFactor * Math.sin(phi);
+  
+  // Add fractal sub-clusters by using modulo operations - increase spacing
+  if (i % 5 === 0) {
+    x -= 250 * Math.sin(i); // Increased from 200 to 250
+    y += 250 * Math.cos(i); // Increased from 200 to 250
   }
   
-  return goatTokenHolders.map((wallet, i) => {
-    // Use logarithmic scaling for more interesting distribution with increased spacing
-    const r = baseRadius * Math.log(i + 2);
-    const theta = i * goldenAngle;
-    const phi = i * 0.5;
-    
-    // Base position calculation - shifted toward -X axis (mirrored from Fartcoin) with increased spacing
-    let x = -(r * spacingFactor * Math.cos(theta)) - baseRadius;
-    let y = r * spacingFactor * Math.sin(theta);
-    let z = r * spacingFactor * Math.sin(phi);
-    
-    // Add fractal sub-clusters by using modulo operations - increase spacing
-    if (i % 5 === 0) {
-      x -= 250 * Math.sin(i); // Increased from 200 to 250
-      y += 250 * Math.cos(i); // Increased from 200 to 250
-    }
-    
-    // Add small noise - adjusted for increased spacing
-    x += randomBetween(-baseRadius/12, baseRadius/12); // Reduced from /10 to /12 for proportional noise
-    y += randomBetween(-baseRadius/12, baseRadius/12);
-    z += randomBetween(-baseRadius/12, baseRadius/12);
-    
-    // Blue color for Goat-only wallets
-    // Brightness correlates with token amount
-    const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
-    const color = `rgb(0, 0, ${brightness + 55})`;
-    
-    return {
-      x, y, z,
-      address: wallet.address,
-      fartAmount: 0,
-      goatAmount: wallet.amount,
-      totalHolding: wallet.amount,
-      walletType: 'goat',
-      color
-    };
-  });
+  // Add small noise - adjusted for increased spacing
+  x += randomBetween(-baseRadius/12, baseRadius/12); // Reduced from /10 to /12 for proportional noise
+  y += randomBetween(-baseRadius/12, baseRadius/12);
+  z += randomBetween(-baseRadius/12, baseRadius/12);
+  
+  // Blue color for Goat-only wallets
+  // Brightness correlates with token amount
+  const brightness = Math.min(200, Math.floor(50 + wallet.amount / 1000000));
+  const color = `rgb(0, 0, ${brightness + 55})`;
+  
+  return {
+    x, y, z,
+    address: wallet.address,
+    fartAmount: 0,
+    goatAmount: wallet.amount,
+    totalHolding: wallet.amount,
+    walletType: 'goat',
+    color
+  };
 };
 
 // Make sure data is initialized first
@@ -171,10 +147,7 @@ initializeData();
 console.log('Mapping wallet data to 3D points immediately');
 console.log(`Data available before mapping: Fartcoin=${fartcoinHolders.length}, Goat=${goatTokenHolders.length}, Shared=${sharedHolders.length}`);
 
-// Generate all the 3D positions - we'll recreate these as functions that can be called when we're sure data is loaded
-const generateSharedPoints = () => mapSharedWallets();
-const generateFartcoinPoints = () => mapFartcoinWallets();
-const generateGoatTokenPoints = () => mapGoatTokenWallets();
+// No longer needed since we're using mapWallets helper function directly
 
 // Initial empty arrays
 export let sharedPoints = [];
@@ -185,17 +158,28 @@ export let goatTokenPoints = [];
 export function generateAllPoints() {
   console.log('Generating all points now that data is loaded');
   
-  // Cap wallets per group as specified
-  fartcoinHolders = fartcoinHolders.slice(0, 500);
-  goatTokenHolders = goatTokenHolders.slice(0, 500);
-  sharedHolders = sharedHolders.slice(0, 100);
+  // Create local copies with capped number of wallets
+  const cappedFartcoinHolders = fartcoinHolders.slice(0, 500);
+  const cappedGoatTokenHolders = goatTokenHolders.slice(0, 500);
+  const cappedSharedHolders = sharedHolders.slice(0, 100);
   
-  sharedPoints = generateSharedPoints();
-  fartcoinPoints = generateFartcoinPoints();
-  goatTokenPoints = generateGoatTokenPoints();
+  // Use the modified functions below to create points based on capped data
+  sharedPoints = mapWallets(cappedSharedHolders, mapSharedWallets);
+  fartcoinPoints = mapWallets(cappedFartcoinHolders, mapFartcoinWallets);
+  goatTokenPoints = mapWallets(cappedGoatTokenHolders, mapGoatTokenWallets);
   
   console.log(`Generated: Shared=${sharedPoints.length}, Fartcoin=${fartcoinPoints.length}, Goat=${goatTokenPoints.length}`);
   return { sharedPoints, fartcoinPoints, goatTokenPoints };
+}
+
+// Helper function to map wallets with the appropriate mapping function
+function mapWallets(wallets, mapFn) {
+  if (!wallets || wallets.length === 0) {
+    console.warn('No wallet data available for mapping');
+    return [];
+  }
+  
+  return wallets.map((wallet, i) => mapFn(wallet, i, wallets.length));
 }
 
 // Generate the initial points
