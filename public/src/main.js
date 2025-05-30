@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FlyControls } from 'three/examples/jsm/controls/FlyControls.js';
 import { initializeData, fartcoinHolders, goatTokenHolders, sharedHolders } from './dataLoader.js';
-import { sharedPoints, fartcoinPoints, goatTokenPoints, generateAllPoints } from './positionMapper.js';
+import { points, generateAllPoints } from './positionMapper.js';
 import tooltipFix from './tooltipFix.js';
 import WalletTooltip from './walletTooltip.js';
 import directTooltipFix, { createTooltipIfMissing, showTooltip, hideTooltip, updateTooltipContent } from './directTooltipFix.js';
@@ -810,7 +810,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Data verification - check that wallet data was loaded successfully
-if (sharedPoints.length === 0 || fartcoinPoints.length === 0 || goatTokenPoints.length === 0) {
+if (points.shared.length === 0 || points.fartcoin.length === 0 || points.goat.length === 0) {
   console.error('ERROR: Missing wallet data for visualization!');
 }
 
@@ -1008,11 +1008,11 @@ function createWalletPointCloud(pointsArray, groupName, color = 0xffffff) {
 }
 
 // Create all wallet point clouds
-if (sharedPoints.length > 0 && fartcoinPoints.length > 0 && goatTokenPoints.length > 0) {
+if (points.shared.length > 0 && points.fartcoin.length > 0 && points.goat.length > 0) {
   // Create point clouds for each dataset with Level 2 recursion
-  const sharedGroups = createWalletPointCloud(sharedPoints, 'sharedWallets', 0xffffff);
-  const fartcoinGroups = createWalletPointCloud(fartcoinPoints, 'fartcoinWallets', 0x00ff00);
-  const goatTokenGroups = createWalletPointCloud(goatTokenPoints, 'goatTokenWallets', 0x0000ff);
+  const sharedGroups = createWalletPointCloud(points.shared, 'sharedWallets', 0xffffff);
+  const fartcoinGroups = createWalletPointCloud(points.fartcoin, 'fartcoinWallets', 0x00ff00);
+  const goatTokenGroups = createWalletPointCloud(points.goat, 'goatTokenWallets', 0x0000ff);
   
   // Extract main groups for bounding box calculation
   const sharedGroup = sharedGroups.mainGroup;
