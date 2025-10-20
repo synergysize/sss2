@@ -176,44 +176,50 @@ const generateSharedPoints = () => mapSharedWallets();
 const generateFartcoinPoints = () => mapFartcoinWallets();
 const generateGoatTokenPoints = () => mapGoatTokenWallets();
 
-// Initial empty arrays
-export let sharedPoints = [];
-export let fartcoinPoints = [];
-export let goatTokenPoints = [];
+// Create points arrays using a mutable object pattern instead of direct reassignment
+export const points = {
+  shared: [],
+  fartcoin: [],
+  goat: []
+};
 
 // Function to populate the arrays when data is ready
 export function generateAllPoints() {
   console.log('Generating all points now that data is loaded');
-  sharedPoints = generateSharedPoints();
-  fartcoinPoints = generateFartcoinPoints();
-  goatTokenPoints = generateGoatTokenPoints();
+  points.shared = generateSharedPoints();
+  points.fartcoin = generateFartcoinPoints();
+  points.goat = generateGoatTokenPoints();
   
-  console.log(`Generated: Shared=${sharedPoints.length}, Fartcoin=${fartcoinPoints.length}, Goat=${goatTokenPoints.length}`);
-  return { sharedPoints, fartcoinPoints, goatTokenPoints };
+  console.log(`Generated: Shared=${points.shared.length}, Fartcoin=${points.fartcoin.length}, Goat=${points.goat.length}`);
+  return { 
+    sharedPoints: points.shared, 
+    fartcoinPoints: points.fartcoin, 
+    goatTokenPoints: points.goat 
+  };
 }
 
 // Generate the initial points
 generateAllPoints();
 
 // Log summary for verification
-console.log(`Mapped ${sharedPoints.length} shared wallet points (centered)`);
-console.log(`Mapped ${fartcoinPoints.length} Fartcoin wallet points (+X space)`);
-console.log(`Mapped ${goatTokenPoints.length} Goat Token wallet points (-X space)`);
+console.log(`Mapped ${points.shared.length} shared wallet points (centered)`);
+console.log(`Mapped ${points.fartcoin.length} Fartcoin wallet points (+X space)`);
+console.log(`Mapped ${points.goat.length} Goat Token wallet points (-X space)`);
 
 // Optional: Log a sample point from each set
-if (sharedPoints.length > 0) {
-  console.log('Sample shared point:', sharedPoints[0]);
+if (points.shared.length > 0) {
+  console.log('Sample shared point:', points.shared[0]);
 }
-if (fartcoinPoints.length > 0) {
-  console.log('Sample Fartcoin point:', fartcoinPoints[0]);
+if (points.fartcoin.length > 0) {
+  console.log('Sample Fartcoin point:', points.fartcoin[0]);
 }
-if (goatTokenPoints.length > 0) {
-  console.log('Sample Goat Token point:', goatTokenPoints[0]);
+if (points.goat.length > 0) {
+  console.log('Sample Goat Token point:', points.goat[0]);
 }
 
 // Default export for convenience
 export default {
-  sharedPoints,
-  fartcoinPoints,
-  goatTokenPoints
+  sharedPoints: points.shared,
+  fartcoinPoints: points.fartcoin,
+  goatTokenPoints: points.goat
 };
